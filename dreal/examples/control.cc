@@ -123,6 +123,7 @@ optional<Box> SynthesizeLyapunov(const vector<Variable>& x,
   condition = condition && (V.Substitute(subst_zero) == 0.0);
 
   // Find c, the coefficients of V.
+  std::cerr << condition << std::endl;
   const auto result = CheckSatisfiability(condition, config);
 
   // Double check the solution by calling CheckLyapunov.
@@ -198,6 +199,7 @@ optional<Box> SynthesizeLyapunov(const vector<Variable>& x, const Variable& t,
   condition = condition && (V.Substitute(subst_zero) == 0.0);
 
   // Find c, the coefficients of V.
+  std::cerr << condition << std::endl;
   const auto result = CheckSatisfiability(condition, config);
 
   // Double check the solution by calling CheckLyapunov.

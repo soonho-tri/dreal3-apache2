@@ -96,7 +96,9 @@ NloptOptimizer::NloptOptimizer(const nlopt_algorithm algorithm, Box bound,
   opt_ = nlopt_create(algorithm, box_.size());
 
   // Set tolerance.
-  nlopt_set_ftol_rel(opt_, delta_);
+  nlopt_set_ftol_rel(opt_, 1e-06);
+  nlopt_set_ftol_abs(opt_, 1e-06);
+  nlopt_set_maxeval(opt_, 100);
 
   // Set bounds.
   const auto lower_bounds = make_unique<double[]>(box_.size());

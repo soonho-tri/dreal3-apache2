@@ -21,7 +21,7 @@ void synthesize_lyapunov_normalized_pendulum() {
   const Variable c3{"c3"};
 
   Config config;
-  config.mutable_precision() = 0.0001;
+  config.mutable_precision() = 0.05;
   config.mutable_use_polytope_in_forall() = true;
   config.mutable_use_local_optimization() = true;
 
@@ -36,13 +36,14 @@ void synthesize_lyapunov_normalized_pendulum() {
 
   // Synthesize one.
   // clang-format off
-  Expression V{c1 * x1 * x1 + c2 * x2 * x2 + c3 * x1 * x2};
+  double scaling_factor = 50.0;
+  Expression V{c1 * scaling_factor * x1 * x1 + c2 * scaling_factor * x2 * x2 + c3 * scaling_factor * x1 * x2};
   const auto result =
     SynthesizeLyapunov({x1, x2},
                        {x2, -sin(x1) - x2},
                        V,
-                       0.0001, 1.0, /* lb&ub of ball */
-                       0.1, 1.0,    /* lb&ub of c_i */
+                       0.1, 1.0, /* lb&ub of ball */
+                       0.1 / scaling_factor, 100.0 / scaling_factor,    /* lb&ub of c_i */
                        config);
   // clang-format on
   if (result) {
