@@ -96,7 +96,9 @@ NloptOptimizer::NloptOptimizer(const nlopt_algorithm algorithm, Box bound,
   opt_ = nlopt_create(algorithm, box_.size());
 
   // Set tolerance.
-  nlopt_set_ftol_rel(opt_, delta_);
+  nlopt_set_ftol_abs(opt_, 1e-6);
+  nlopt_set_ftol_rel(opt_, 1e-6);
+  nlopt_set_maxtime(opt_, 0.01);
 
   // Set bounds.
   const auto lower_bounds = make_unique<double[]>(box_.size());
@@ -180,11 +182,11 @@ void NloptOptimizer::AddRelationalConstraint(const Formula& formula) {
   if (equality) {
     nlopt_add_equality_constraint(opt_, NloptOptimizerEvaluate,
                                   static_cast<void*>(constraints_.back().get()),
-                                  delta_);
+                                  delta_ / 2.0);
   } else {
     nlopt_add_inequality_constraint(
         opt_, NloptOptimizerEvaluate,
-        static_cast<void*>(constraints_.back().get()), delta_);
+        static_cast<void*>(constraints_.back().get()), delta_ / 2.0);
   }
 }
 

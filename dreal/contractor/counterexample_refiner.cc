@@ -39,11 +39,12 @@ CounterexampleRefiner::CounterexampleRefiner(const Formula& query,
   // objective function.
   if (IsDifferentiable(query)) {
     // See https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#slsqp
-    opt_ = make_unique<NloptOptimizer>(NLOPT_LD_SLSQP, box, precision);
+    opt_ = make_unique<NloptOptimizer>(NLOPT_LD_SLSQP, box, precision * 0.1);
   } else {
     // See
     // https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#newuoa-bound-constraints
-    opt_ = make_unique<NloptOptimizer>(NLOPT_LN_NEWUOA_BOUND, box, precision);
+    opt_ = make_unique<NloptOptimizer>(NLOPT_LN_NEWUOA_BOUND, box,
+                                       precision * 0.1);
   }
   Expression objective{};
   for (const Formula& f : formulas) {
