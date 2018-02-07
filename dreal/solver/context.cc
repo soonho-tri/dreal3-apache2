@@ -157,6 +157,14 @@ Expression TAC::VisitConstant(const Expression& e, vector<Formula>* const) {
 Expression TAC::VisitAddition(const Expression& e,
                               vector<Formula>* const formulas) {
   // c0 + c1 * e1 + ... + cn * en.
+  const double c{get_constant_in_addition(e)};
+  std::map<Expression, double> expr_to_coeff_map;
+  for (const auto& p : get_expr_to_coeff_map_in_addition(e)) {
+    const Expression& expr{p.first};
+    const double coeff{p.second};
+    expr_to_coeff_map.emplace(Visit(expr, formulas), coeff);
+  }
+  return ExpressionAddFactory
 }
 Expression TAC::VisitMultiplication(const Expression& e,
                                     vector<Formula>* const formulas) {
