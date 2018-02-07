@@ -77,6 +77,123 @@ Context::Impl::Impl(Config config) : config_{config} {
   boxes_.push_back(Box{});
 }
 
+namespace {
+
+using std::vector;
+
+class TAC {
+ public:
+  vector<Formula> Convert(const Formula& f);
+
+ private:
+  // VisitExpression
+  Expression Visit(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitVariable(const Expression& e,
+                           vector<Formula>* const formulas);
+  Expression VisitConstant(const Expression& e,
+                           vector<Formula>* const formulas);
+  Expression VisitAddition(const Expression& e,
+                           vector<Formula>* const formulas);
+  Expression VisitMultiplication(const Expression& e,
+                                 vector<Formula>* const formulas);
+  Expression VisitDivision(const Expression& e,
+                           vector<Formula>* const formulas);
+  Expression VisitLog(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitAbs(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitExp(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitSqrt(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitPow(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitSin(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitCos(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitTan(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitAsin(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitAcos(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitAtan(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitAtan2(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitSinh(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitCosh(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitTanh(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitMin(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitMax(const Expression& e, vector<Formula>* const formulas);
+  Expression VisitIfThenElse(const Expression& e,
+                             vector<Formula>* const formulas);
+  Expression VisitUninterpretedFunction(const Expression& e,
+                                        vector<Formula>* const formulas);
+
+  // VisitFormula
+  void Visit(const Formula& f, vector<Formula>* const formulas);
+  void VisitFalse(const Formula& f, vector<Formula>* const formulas);
+  void VisitTrue(const Formula& f, vector<Formula>* const formulas);
+  void VisitVariable(const Formula& f, vector<Formula>* const formulas);
+  void VisitEqualTo(const Formula& f, vector<Formula>* const formulas);
+  void VisitNotEqualTo(const Formula& f, vector<Formula>* const formulas);
+  void VisitGreaterThan(const Formula& f, vector<Formula>* const formulas);
+  void VisitGreaterThanOrEqualTo(const Formula& f,
+                                 vector<Formula>* const formulas);
+  void VisitLessThan(const Formula& f, vector<Formula>* const formulas);
+  void VisitLessThanOrEqualTo(const Formula& f,
+                              vector<Formula>* const formulas);
+  void VisitConjunction(const Formula& f, vector<Formula>* const formulas);
+  void VisitDisjunction(const Formula& f, vector<Formula>* const formulas);
+  void VisitNegation(const Formula& f, vector<Formula>* const formulas);
+  void VisitForall(const Formula& f, vector<Formula>* const formulas);
+};
+
+vector<Formula> TAC::Convert(const Formula& f) {
+  vector<Formula> ret;
+  Visit(f, &ret);
+  return ret;
+}
+
+Expression TAC::Visit(const Expression& e, vector<Formula>* const formulas) {
+  return VisitExpression<Expression>(this, e, formulas);
+}
+Expression TAC::VisitVariable(const Expression& e, vector<Formula>* const) {
+  return e;
+}
+Expression TAC::VisitConstant(const Expression& e, vector<Formula>* const) {
+  return e;
+}
+Expression TAC::VisitAddition(const Expression& e,
+                              vector<Formula>* const formulas) {
+  // c0 + c1 * e1 + ... + cn * en.
+}
+Expression TAC::VisitMultiplication(const Expression& e,
+                                    vector<Formula>* const formulas) {
+  // c0 * e_{1,1} ^ e_{1,2} + ... + e_{n,1} ^ e_{n,2}.
+}
+Expression TAC::VisitDivision(const Expression& e,
+                              vector<Formula>* const formulas) {
+  return Visit(get_lhs_expression(e), formulas) /
+         Visit(get_rhs_expression(e), formulas);
+}
+Expression TAC::VisitLog(const Expression& e, vector<Formula>* const formulas) {
+  const Expression arg{Visit(get_argument(e), formulas)};
+}
+Expression TAC::VisitAbs(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitExp(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitSqrt(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitPow(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitSin(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitCos(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitTan(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitAsin(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitAcos(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitAtan(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitAtan2(const Expression& e,
+                           vector<Formula>* const formulas);
+Expression TAC::VisitSinh(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitCosh(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitTanh(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitMin(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitMax(const Expression& e, vector<Formula>* const formulas);
+Expression TAC::VisitIfThenElse(const Expression& e,
+                                vector<Formula>* const formulas);
+Expression TAC::VisitUninterpretedFunction(const Expression& e,
+                                           vector<Formula>* const formulas);
+
+}  // namespace
+
 void Context::Impl::Assert(const Formula& f) {
   if (is_true(f)) {
     return;

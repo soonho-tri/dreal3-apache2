@@ -18,6 +18,10 @@ if platform == "linux" or platform == "linux2":
     '/usr/include/x86_64-linux-gnu',
     PLATFORM_INCLUDE_PATH,
   ]
+  IBEX_INCLUDES = [
+    '%s/ibex' % PLATFORM_INCLUDE_PATH,
+    '%s/ibex/3rd' % PLATFORM_INCLUDE_PATH,
+  ]
   CLP_INCLUDES = [
     '%s/coin' % PLATFORM_INCLUDE_PATH,
   ]
@@ -31,16 +35,17 @@ elif platform == "darwin":
     '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include',
     '/usr/include',
   ]
+  IBEX_INCLUDES = [
+    '/usr/local/opt/ibex@2.6.5/include',
+    '/usr/local/opt/ibex@2.6.5/include/ibex',
+    '/usr/local/opt/ibex@2.6.5/include/ibex/3rd',
+  ]
   CLP_INCLUDES = [
     '%s/clp/coin' % PLATFORM_INCLUDE_PATH,
     '%s/coinutils/coin' % PLATFORM_INCLUDE_PATH,
   ]
 
-SYSTEM_INCLUDES = [
-  # ibex
-  '%s/ibex' % PLATFORM_INCLUDE_PATH,
-  '%s/ibex/3rd' % PLATFORM_INCLUDE_PATH,
-] + CLP_INCLUDES + [
+SYSTEM_INCLUDES = IBEX_INCLUDES + CLP_INCLUDES + [
   # External packages
   '%s/spdlog/include' % BAZEL_EXTERNAL,
   '%s/fmt' % BAZEL_EXTERNAL,
