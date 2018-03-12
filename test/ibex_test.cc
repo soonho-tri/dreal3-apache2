@@ -8,6 +8,7 @@
 // Last Update : Jun 3, 2012
 //============================================================================
 #include "./ibex.h"
+#include "./Tube.h"
 
 #include <cmath>
 #include <iostream>
@@ -81,5 +82,13 @@ int main() {
     ibex::CtcNewton newton(f);
     newton.contract(box);
     cout << "box after newton=" << box << endl;
+  }
+
+  {
+    const auto& x = ibex::ExprSymbol::new_();
+    const ibex::Interval domain(0, 100);
+    ibex::Function f(x, x * x);
+    tubex::Tube tube(domain, 0.001, f);
+    std::cerr << tube.integral(2) << std::endl;
   }
 }
