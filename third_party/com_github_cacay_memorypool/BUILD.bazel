@@ -7,13 +7,12 @@ filegroup(
     name = "headers",
     srcs = [
         "MemoryPool.h",
-        "MemoryPool.tcc",
     ],
     visibility = ["//visibility:public"],
 )
 
 cc_library(
-    name = "drake_symbolic",
+    name = "memory_pool",
     hdrs = [
         ":headers",
     ],
