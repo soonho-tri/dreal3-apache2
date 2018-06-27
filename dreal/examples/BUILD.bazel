@@ -32,6 +32,29 @@ dreal_cc_binary(
 )
 
 dreal_cc_binary(
+    name = "dnn_01",
+    srcs = [
+        "dnn_01.cc",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//dreal/symbolic",
+        "//dreal/util:profiler",
+    ],
+)
+
+dreal_cc_binary(
+    name = "dnn_02",
+    srcs = [
+        "dnn_02.cc",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//dreal/symbolic",
+    ],
+)
+
+dreal_cc_binary(
     name = "synthesize_lyapunov_simple",
     srcs = [
         "synthesize_lyapunov_simple.cc",
