@@ -45,25 +45,13 @@ Expression IfThenElseEliminator::VisitRealConstant(const Expression& e) {
 }
 
 Expression IfThenElseEliminator::VisitAddition(const Expression& e) {
-  // e = c₀ + ∑ᵢ cᵢ * eᵢ
-  Expression ret{get_constant_in_addition(e)};
-  for (const auto& p : get_expr_to_coeff_map_in_addition(e)) {
-    const Expression& e_i{p.first};
-    const double c_i{p.second};
-    ret += c_i * Visit(e_i);
-  }
-  return ret;
+  // e = e1 + e2
+  return Visit(get_first_argument(e)) + Visit(get_second_argument(e));
 }
 
 Expression IfThenElseEliminator::VisitMultiplication(const Expression& e) {
-  // e = c₀ * ∏ᵢ pow(eᵢ₁, eᵢ₂)
-  Expression ret{get_constant_in_multiplication(e)};
-  for (const auto& p : get_base_to_exponent_map_in_multiplication(e)) {
-    const Expression& e_i1{p.first};
-    const Expression& e_i2{p.second};
-    ret *= pow(Visit(e_i1), Visit(e_i2));
-  }
-  return ret;
+  // e = e1 * e2
+  return Visit(get_first_argument(e)) * Visit(get_second_argument(e));
 }
 
 Expression IfThenElseEliminator::VisitDivision(const Expression& e) {

@@ -47,27 +47,12 @@ Box::Interval ExpressionEvaluator::VisitRealConstant(const Expression& e,
 
 Box::Interval ExpressionEvaluator::VisitAddition(const Expression& e,
                                                  const Box& box) const {
-  const double c{get_constant_in_addition(e)};
-  const auto& expr_to_coeff_map = get_expr_to_coeff_map_in_addition(e);
-  return accumulate(expr_to_coeff_map.begin(), expr_to_coeff_map.end(),
-                    ibex::Interval{c},
-                    [this, &box](const Box::Interval init,
-                                 const pair<Expression, double>& p) {
-                      return init + Visit(p.first, box) * p.second;
-                    });
+  return Visit(get_first_argument(e), box) + Visit(get_second_argument(e), box);
 }
 
 Box::Interval ExpressionEvaluator::VisitMultiplication(const Expression& e,
                                                        const Box& box) const {
-  const double c{get_constant_in_multiplication(e)};
-  const auto& base_to_exponent_map =
-      get_base_to_exponent_map_in_multiplication(e);
-  return accumulate(base_to_exponent_map.begin(), base_to_exponent_map.end(),
-                    ibex::Interval{c},
-                    [this, &box](const Box::Interval init,
-                                 const pair<Expression, Expression>& p) {
-                      return init * VisitPow(p.first, p.second, box);
-                    });
+  return Visit(get_first_argument(e), box) * Visit(get_second_argument(e), box);
 }
 
 Box::Interval ExpressionEvaluator::VisitDivision(const Expression& e,

@@ -37,7 +37,7 @@ TEST_F(ExpressionEvaluatorTest, Arithmetic1) {
   EXPECT_EQ(evaluator(box_), Box::Interval(1 + 2 + 3, 2 + 3 + 4));
   ostringstream oss;
   oss << evaluator;
-  EXPECT_EQ(oss.str(), "ExpressionEvaluator((x + y + z))");
+  EXPECT_EQ(oss.str(), "ExpressionEvaluator(((x + y) + z))");
 }
 
 // TODO(soonho): Add more tests.

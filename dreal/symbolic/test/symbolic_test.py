@@ -34,9 +34,9 @@ class SymbolicVariableTest(unittest.TestCase):
         self.assertEqual(str(1 + x), "(1 + x)")
 
     def test_subtraction(self):
-        self.assertEqual(str(x - y), "(x - y)")
-        self.assertEqual(str(x - 1), "(-1 + x)")
-        self.assertEqual(str(1 - x), "(1 - x)")
+        self.assertEqual(str(x - y), "(x + -y)")
+        self.assertEqual(str(x - 1), "(x + -1)")
+        self.assertEqual(str(1 - x), "(1 + -x)")
 
     def test_multiplication(self):
         self.assertEqual(str(x * y), "(x * y)")
@@ -50,7 +50,7 @@ class SymbolicVariableTest(unittest.TestCase):
 
     def test_unary_operators(self):
         self.assertEqual(str(+x), "x")
-        self.assertEqual(str(-x), "(-1 * x)")
+        self.assertEqual(str(-x), "-x")
 
     def test_relational_operators(self):
         # Variable rop float
@@ -82,22 +82,21 @@ class SymbolicVariableTest(unittest.TestCase):
 
     def test_simplify(self):
         self.assertEqual(str(0 * (x + y)), "0")
-        self.assertEqual(str(x + y - x - y), "0")
         self.assertEqual(str(x / x - 1), "0")
         self.assertEqual(str(x / x), "1")
 
     def test_expand(self):
         ex = 2 * (x + y)
         self.assertEqual(str(ex), "(2 * (x + y))")
-        self.assertEqual(str(ex.Expand()), "(2 * x + 2 * y)")
+        self.assertEqual(str(ex.Expand()), "((2 * x) + (2 * y))")
 
     def test_pow(self):
         self.assertEqual(str(x**2), "pow(x, 2)")
         self.assertEqual(str(x**y), "pow(x, y)")
-        self.assertEqual(str((x + 1)**(y - 1)), "pow((1 + x), (-1 + y))")
+        self.assertEqual(str((x + 1)**(y - 1)), "pow((1 + x), (y + -1))")
 
     def test_neg(self):
-        self.assertEqual(str(-(x + 1)), "(-1 - x)")
+        self.assertEqual(str(-(x + 1)), "-(1 + x)")
 
     def test_logical(self):
         f1 = (x == 0)
@@ -264,12 +263,12 @@ class TestSymbolicExpression(unittest.TestCase):
     def test_addition(self):
         self.assertEqual(str(e_x + e_y), "(x + y)")
         self.assertEqual(str(e_x + y), "(x + y)")
-        self.assertEqual(str(e_x + 1), "(1 + x)")
-        self.assertEqual(str(x + e_y), "(x + y)")
+        self.assertEqual(str(e_x + 1), "(x + 1)")
+        self.assertEqual(str(x + e_y), "(y + x)")
         self.assertEqual(str(1 + e_x), "(1 + x)")
 
     def test_addition_assign(self):
-        e = x
+        e = Expression(x)
         e += e_y
         self.assertEqual(e, x + y)
         e += z
@@ -278,11 +277,11 @@ class TestSymbolicExpression(unittest.TestCase):
         self.assertEqual(e, x + y + z + 1)
 
     def test_subtract(self):
-        self.assertEqual(str(e_x - e_y), "(x - y)")
-        self.assertEqual(str(e_x - y), "(x - y)")
-        self.assertEqual(str(e_x - 1), "(-1 + x)")
-        self.assertEqual(str(x - e_y), "(x - y)")
-        self.assertEqual(str(1 - e_x), "(1 - x)")
+        self.assertEqual(str(e_x - e_y), "(x + -y)")
+        self.assertEqual(str(e_x - y), "(x + -y)")
+        self.assertEqual(str(e_x - 1), "(x + -1)")
+        self.assertEqual(str(x - e_y), "(x + -y)")
+        self.assertEqual(str(1 - e_x), "(1 + -x)")
 
     def test_subtract_assign(self):
         e = x
@@ -297,11 +296,11 @@ class TestSymbolicExpression(unittest.TestCase):
         self.assertEqual(str(e_x * e_y), "(x * y)")
         self.assertEqual(str(e_x * y), "(x * y)")
         self.assertEqual(str(e_x * 1), "x")
-        self.assertEqual(str(x * e_y), "(x * y)")
+        self.assertEqual(str(x * e_y), "(y * x)")
         self.assertEqual(str(1 * e_x), "x")
 
     def test_multiplication_assign(self):
-        e = x
+        e = Expression(x)
         e *= e_y
         self.assertEqual(e, x * y)
         e *= z
@@ -327,7 +326,7 @@ class TestSymbolicExpression(unittest.TestCase):
 
     def test_unary_operators(self):
         # self.assertEqual(str(+e_x), "x")
-        self.assertEqual(str(-e_x), "(-1 * x)")
+        self.assertEqual(str(-e_x), "-x")
 
     def test_relational_operators(self):
         # Expression rop Expression
@@ -452,8 +451,8 @@ class TestSymbolicExpression(unittest.TestCase):
     def test_substitute(self):
         e = x + y
         self.assertEqual(e.Substitute(x, 1.0), 1.0 + y)
-        self.assertEqual(e.Substitute(x, y), 2 * y)
-        self.assertEqual(e.Substitute(x, x + 5), x + y + 5)
+        self.assertEqual(e.Substitute(x, y), y + y)
+        self.assertEqual(e.Substitute(x, x + 5), (x + 5) + y)
 
     def test_if_then_else(self):
         b = Variable("b", Variable.Bool)
@@ -480,7 +479,8 @@ class TestSymbolicFormula(unittest.TestCase):
 
     def test_substitute_with_dict(self):
         f = x + y > z
-        self.assertEqual(f.Substitute({x: x + 2, y: y + 3}), x + y + 5 > z)
+        self.assertEqual(f.Substitute({x: x + 2, y: y + 3}),
+                         (x + 2) + (y + 3) > z)
 
     def test_to_string(self):
         f = x > y

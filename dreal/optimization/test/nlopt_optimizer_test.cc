@@ -96,7 +96,7 @@ TEST_F(NloptOptimizerTest, EqualityConstraint) {
   b[x1_] = Box::Interval(1.0, 1.0);
   NloptOptimizer opt(nlopt::algorithm::LD_SLSQP, b, config);
   opt.SetMinObjective(x1_ + x2_ + x3_ * x3_);
-  opt.AddConstraint(x1_ * x1_ + x2_ * x2_ == 1.0);
+  opt.AddConstraint(-1.0 + x1_ * x1_ + x2_ * x2_ == 0.0);
 
   vector<double> sol{1, 0.5, 0.1};
   double v{0.0};

@@ -33,22 +33,6 @@ bool operator<(ExpressionKind k1, ExpressionKind k2) {
   return static_cast<int>(k1) < static_cast<int>(k2);
 }
 
-namespace {
-// Negates an addition expression.
-// - (E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-Expression NegateAddition(const Expression& e) {
-  assert(is_addition(e));
-  return ExpressionAddFactory{to_addition(e)}.Negate().GetExpression();
-}
-
-// Negates a multiplication expression.
-// - (c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-Expression NegateMultiplication(const Expression& e) {
-  assert(is_multiplication(e));
-  return ExpressionMulFactory{to_multiplication(e)}.Negate().GetExpression();
-}
-}  // namespace
-
 Expression::Expression(const Expression& e) {
   assert(e.ptr_ != nullptr);
   e.ptr_->increase_rc();
@@ -283,29 +267,7 @@ Expression& operator+=(Expression& lhs, const Expression& rhs) {
     lhs = get_constant_value(lhs) + get_constant_value(rhs);
     return lhs;
   }
-  // Simplification: flattening. To build a new expression, we use
-  // ExpressionAddFactory which holds intermediate terms and does
-  // simplifications internally.
-  ExpressionAddFactory add_factory{};
-  if (is_addition(lhs)) {
-    // 1. (e_1 + ... + e_n) + rhs
-    add_factory = to_addition(lhs);
-    // Note: AddExpression method takes care of the special case where `rhs`
-    // is of ExpressionAdd.
-    add_factory.AddExpression(rhs);
-  } else {
-    if (is_addition(rhs)) {
-      // 2. lhs + (e_1 + ... + e_n)
-      add_factory = to_addition(rhs);
-      add_factory.AddExpression(lhs);
-    } else {
-      // nothing to flatten: return lhs + rhs
-      add_factory.AddExpression(lhs);
-      add_factory.AddExpression(rhs);
-    }
-  }
-  // Extract an expression from factory
-  lhs = add_factory.GetExpression();
+  lhs = Expression{new ExpressionAdd{lhs, rhs}};
   return lhs;
 }
 
@@ -353,16 +315,6 @@ Expression operator-(const Expression& e) {
   if (is_constant(e)) {
     return Expression{-get_constant_value(e)};
   }
-  // Simplification: push '-' inside over '+'.
-  // -(E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-  if (is_addition(e)) {
-    return NegateAddition(e);
-  }
-  // Simplification: push '-' inside over '*'.
-  // -(c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-  if (is_multiplication(e)) {
-    return NegateMultiplication(e);
-  }
   return -1 * e;
 }
 
@@ -408,35 +360,6 @@ Expression& operator*=(Expression& lhs, const Expression& rhs) {
   if (is_division(lhs) && is_constant(get_first_argument(lhs))) {
     lhs = (get_first_argument(lhs) * rhs) / get_second_argument(lhs);
     return lhs;
-  }
-  if (is_neg_one(lhs)) {
-    if (is_addition(rhs)) {
-      // Simplification: push '-' inside over '+'.
-      // -1 * (E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-      lhs = NegateAddition(rhs);
-      return lhs;
-    }
-    if (is_multiplication(rhs)) {
-      // Simplification: push '-' inside over '*'.
-      // -1 * (c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-      lhs = NegateMultiplication(rhs);
-      return lhs;
-    }
-  }
-
-  if (is_neg_one(rhs)) {
-    if (is_addition(lhs)) {
-      // Simplification: push '-' inside over '+'.
-      // (E_1 + ... + E_n) * -1 => (-E_1 + ... + -E_n)
-      lhs = NegateAddition(lhs);
-      return lhs;
-    }
-    if (is_multiplication(lhs)) {
-      // Simplification: push '-' inside over '*'.
-      // (c0 * E_1 * ... * E_n) * -1 => (-c0 * E_1 * ... * E_n)
-      lhs = NegateMultiplication(lhs);
-      return lhs;
-    }
   }
 
   // Simplification: 0 * E => 0
@@ -493,34 +416,12 @@ Expression& operator*=(Expression& lhs, const Expression& rhs) {
     lhs = Expression{get_constant_value(lhs) * get_constant_value(rhs)};
     return lhs;
   }
-  // Simplification: flattening
-  ExpressionMulFactory mul_factory{};
-  if (is_multiplication(lhs)) {
-    // (e_1 * ... * e_n) * rhs
-    mul_factory = to_multiplication(lhs);
-    // Note: AddExpression method takes care of the special case where `rhs`
-    // is of ExpressionMul.
-    mul_factory.AddExpression(rhs);
-  } else {
-    if (is_multiplication(rhs)) {
-      // e_1 * (e_2 * ... * e_n) -> (e_2 * ... * e_n * e_1)
-      //
-      // Note that we do not preserve the original ordering because * is
-      // associative.
-      mul_factory = to_multiplication(rhs);
-      mul_factory.AddExpression(lhs);
-    } else {
-      // Simplification: x * x => x^2 (=pow(x,2))
-      if (lhs.EqualTo(rhs)) {
-        lhs = pow(lhs, 2.0);
-        return lhs;
-      }
-      // nothing to flatten
-      mul_factory.AddExpression(lhs);
-      mul_factory.AddExpression(rhs);
-    }
+  // Simplification: x * x => x^2 (=pow(x,2))
+  if (lhs.EqualTo(rhs)) {
+    lhs = pow(lhs, 2.0);
+    return lhs;
   }
-  lhs = mul_factory.GetExpression();
+  lhs = Expression{new ExpressionMul{lhs, rhs}};
   return lhs;
 }
 
@@ -567,22 +468,22 @@ Expression Sum(const std::vector<Expression>& expressions) {
   if (expressions.empty()) {
     return Expression::Zero();
   }
-  ExpressionAddFactory f;
+  Expression s;
   for (const Expression& e : expressions) {
-    f.AddExpression(e);
+    s += e;
   }
-  return f.GetExpression();
+  return s;
 }
 
 Expression Prod(const std::vector<Expression>& expressions) {
   if (expressions.empty()) {
     return Expression::One();
   }
-  ExpressionMulFactory f;
+  Expression p{Expression::One()};
   for (const Expression& e : expressions) {
-    f.AddExpression(e);
+    p *= e;
   }
-  return f.GetExpression();
+  return p;
 }
 
 Expression real_constant(const double lb, const double ub,
@@ -849,20 +750,6 @@ const Expression& get_first_argument(const Expression& e) {
 }
 const Expression& get_second_argument(const Expression& e) {
   return to_binary(e)->get_second_argument();
-}
-double get_constant_in_addition(const Expression& e) {
-  return to_addition(e)->get_constant();
-}
-const map<Expression, double>& get_expr_to_coeff_map_in_addition(
-    const Expression& e) {
-  return to_addition(e)->get_expr_to_coeff_map();
-}
-double get_constant_in_multiplication(const Expression& e) {
-  return to_multiplication(e)->get_constant();
-}
-const map<Expression, Expression>& get_base_to_exponent_map_in_multiplication(
-    const Expression& e) {
-  return to_multiplication(e)->get_base_to_exponent_map();
 }
 
 const Formula& get_conditional_formula(const Expression& e) {

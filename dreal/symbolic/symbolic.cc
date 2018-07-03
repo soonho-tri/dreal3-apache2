@@ -323,23 +323,10 @@ class IsDifferentiableVisitor {
   bool VisitConstant(const Expression&) const { return true; }
   bool VisitRealConstant(const Expression&) const { return true; }
   bool VisitAddition(const Expression& e) const {
-    for (const auto& p : get_expr_to_coeff_map_in_addition(e)) {
-      const Expression& e_i{p.first};
-      if (!Visit(e_i)) {
-        return false;
-      }
-    }
-    return true;
+    return Visit(get_first_argument(e)) && Visit(get_second_argument(e));
   }
   bool VisitMultiplication(const Expression& e) const {
-    for (const auto& p : get_base_to_exponent_map_in_multiplication(e)) {
-      const Expression& base{p.first};
-      const Expression& exponent{p.second};
-      if (!Visit(base) || !Visit(exponent)) {
-        return false;
-      }
-    }
-    return true;
+    return Visit(get_first_argument(e)) && Visit(get_second_argument(e));
   }
   bool VisitDivision(const Expression& e) const {
     return Visit(get_first_argument(e)) && Visit(get_second_argument(e));

@@ -39,7 +39,7 @@ Expression Sum2(const vector<Expression>& expressions) {
 
 int main() {
   const int N = 1000;
-  const int N2 = 1;
+  const int N2 = 1000;
   std::vector<dreal::Variable> vars(N);
   std::vector<dreal::Expression> varscast(N);
 
@@ -68,22 +68,11 @@ int main() {
       delete out;
     }
     result = out1;
-    {
-      dreal::Profiler p1("Sum1");
-      dreal::Expression exp = dreal::Sum(*result);
+    dreal::Expression exp = dreal::Sum2(*result);
+    for (int j = 0; j < N; ++j) {
+      std::cerr << i << " " << std::endl;
+      (*result)[j] = exp + (*result)[j];
     }
-    {
-      dreal::Profiler p2("Sum2");
-      dreal::Expression exp = dreal::Sum2(*result);
-    }
-
-    // {
-    //   for (int j = 0; j < N; ++j) {
-    //     std::cerr << i << " " << std::endl;
-    //     (*result)[j] = exp + (*result)[j];
-    //   }
-    // }
-
     if (i % 1 == 0) std::cout << i << std::endl;
   }
 }
