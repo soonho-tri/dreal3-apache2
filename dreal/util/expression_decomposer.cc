@@ -29,7 +29,7 @@ void ExpressionDecomposer::Pop() {
   cache_.pop();
 }
 
-Expression ExpressionDecomposer::GetVariable(const Expression& e) {
+Expression ExpressionDecomposer::GetSimplifiedExpression(const Expression& e) {
   auto it = cache_.find(e);
   if (it != cache_.end()) {
     return it->second;
@@ -67,7 +67,7 @@ Expression ExpressionDecomposer::VisitAddition(const Expression& e) {
        get_expr_to_coeff_map_in_addition(e)) {
     new_e += Visit(p.first) * p.second;
   }
-  return GetVariable(new_e);
+  return GetSimplifiedExpression(new_e);
 }
 
 Expression ExpressionDecomposer::VisitMultiplication(const Expression& e) {
@@ -76,13 +76,13 @@ Expression ExpressionDecomposer::VisitMultiplication(const Expression& e) {
        get_base_to_exponent_map_in_multiplication(e)) {
     new_e *= Visit(pow(Visit(p.first), Visit(p.second)));
   }
-  return GetVariable(new_e);
+  return GetSimplifiedExpression(new_e);
 }
 
 Expression ExpressionDecomposer::VisitUnary(
     const Expression& e, const function<Expression(const Expression&)>& f) {
   const Expression& arg{get_argument(e)};
-  return GetVariable(f(Visit(arg)));
+  return GetSimplifiedExpression(f(Visit(arg)));
 }
 
 Expression ExpressionDecomposer::VisitLog(const Expression& e) {
@@ -142,7 +142,7 @@ Expression ExpressionDecomposer::VisitBinary(
     const function<Expression(const Expression&, const Expression&)>& f) {
   const Expression& arg1{get_first_argument(e)};
   const Expression& arg2{get_second_argument(e)};
-  return GetVariable(f(Visit(arg1), Visit(arg2)));
+  return GetSimplifiedExpression(f(Visit(arg1), Visit(arg2)));
 }
 
 Expression ExpressionDecomposer::VisitDivision(const Expression& e) {
@@ -170,7 +170,8 @@ Expression ExpressionDecomposer::VisitIfThenElse(const Expression& e) {
   const Formula& cond{get_conditional_formula(e)};
   const Expression& e1{get_then_expression(e)};
   const Expression& e2{get_else_expression(e)};
-  return GetVariable(if_then_else(Visit(cond), Visit(e1), Visit(e2)));
+  return GetSimplifiedExpression(
+      if_then_else(Visit(cond), Visit(e1), Visit(e2)));
 }
 
 Expression ExpressionDecomposer::VisitUninterpretedFunction(

@@ -28,10 +28,12 @@ class ExpressionDecomposer {
   void Pop();
 
  private:
-  // Create a new variable `v` for `e` and return `v`.  It also add a
-  // new equality `v == e`.  This method uses `cache_` to share the
-  // same variable `v` for the expression `e`.
-  Expression GetVariable(const Expression& e);
+  // - If `e` has been associated with a variable `v`, return `v`.
+  // - If `-e` has been associated with `v`, then return `-v`.
+  // - Oterwise, create a new variable `v` for `e` and return `v`. It
+  //   also add a new equality `v == e`.  This method uses `cache_` to
+  //   share the same variable `v` for the expression `e`.
+  Expression GetSimplifiedExpression(const Expression& e);
 
   // Handle expressions.
   Expression Visit(const Expression& e);

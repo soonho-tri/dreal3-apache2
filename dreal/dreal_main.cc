@@ -162,6 +162,13 @@ void MainProgram::AddOptions() {
            1 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
            "Set a seed for the random number generator.", "--random-seed");
+
+  opt_.add("false" /* Default */, false /* Required? */,
+           0 /* Number of args expected. */,
+           0 /* Delimiter if expecting multiple args. */,
+           "Decompose composite expressions into simple expressions by "
+           "introducing new intermediate variables.",
+           "--decompose-expressions");
 }
 
 bool MainProgram::ValidateOptions() {
@@ -321,6 +328,14 @@ void MainProgram::ExtractOptions() {
     config_.mutable_random_seed().set_from_command_line(random_seed);
     DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --random-seed = {}",
                     config_.random_seed());
+  }
+
+  // --decompose-expressions
+  if (opt_.isSet("--decompose-expressions")) {
+    config_.mutable_decompose_expressions().set_from_command_line(true);
+    DREAL_LOG_DEBUG(
+        "MainProgram::ExtractOptions() --decompose-expressions = {}",
+        config_.decompose_expressions());
   }
 }
 

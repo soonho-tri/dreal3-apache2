@@ -86,6 +86,34 @@ Context::Impl::Impl(Config config)
   boxes_.push_back(Box{});
 }
 
+void Context::Impl::DoAssert(const Formula& f) {
+  if (FilterAssertion(f, &box()) != FilterAssertionResult::NotFiltered) {
+    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is not added.", f);
+    DREAL_LOG_DEBUG("Box=\n{}", box());
+    return;
+  }
+
+  IfThenElseEliminator ite_eliminator;
+  const Formula no_ite{ite_eliminator.Process(f)};
+
+  AddToStack(no_ite);
+
+  if (find_if(stack_.begin(), stack_.end(), [&no_ite](const Formula& f) {
+        return f.EqualTo(no_ite);
+      }) == stack_.end()) {
+    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is added.", f);
+    for (const Variable& ite_var : ite_eliminator.variables()) {
+      // Note that the following does not mark `ite_var` as a model variable.
+      AddToBox(ite_var);
+    }
+    stack_.push_back(no_ite);
+    return;
+  } else {
+    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is not added.", f);
+    return;
+  }
+}
+
 void Context::Impl::Assert(const Formula& f) {
   if (is_true(f)) {
     return;
@@ -94,25 +122,14 @@ void Context::Impl::Assert(const Formula& f) {
     return;
   }
 
-  Formula new_f{expression_decomposer_.Decompose(f)};
-  for (const Variable& v : expression_decomposer_.NewVariables()) {
-    DeclareVariable(v, false);
-  }
-
-  if (FilterAssertion(new_f, &box()) == FilterAssertionResult::NotFiltered) {
-    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is added.", new_f);
-    IfThenElseEliminator ite_eliminator;
-    const Formula no_ite{ite_eliminator.Process(new_f)};
-    for (const Variable& ite_var : ite_eliminator.variables()) {
-      // Note that the following does not mark `ite_var` as a model variable.
-      AddToBox(ite_var);
+  if (config_.decompose_expressions()) {
+    Formula new_f{expression_decomposer_.Decompose(f)};
+    for (const Variable& v : expression_decomposer_.NewVariables()) {
+      DeclareVariable(v, false);
     }
-    stack_.push_back(no_ite);
-    return;
+    DoAssert(new_f);
   } else {
-    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is not added.", new_f);
-    DREAL_LOG_DEBUG("Box=\n{}", box());
-    return;
+    DoAssert(f);
   }
 }
 

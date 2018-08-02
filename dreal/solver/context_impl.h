@@ -42,6 +42,8 @@ class Context::Impl {
   Config& mutable_config() { return config_; }
 
  private:
+  void DoAssert(const Formula& f);
+
   // Add the variable @p v to the current box. This is used to
   // introduce a non-model variable to solver. For a model variable,
   // `DeclareVariable` should be used. But `DeclareVariable` should be

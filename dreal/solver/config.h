@@ -109,6 +109,11 @@ class Config {
   /// Returns a mutable OptionValue for `random_seed`.
   OptionValue<uint32_t>& mutable_random_seed();
 
+  /// Returns whether it has to decompose expressions or not.
+  bool decompose_expressions() const;
+
+  /// Returns a mutable OptionValue for `decompose_expressions`.
+  OptionValue<bool>& mutable_decompose_expressions();
   /// @}
 
  private:
@@ -168,6 +173,9 @@ class Config {
 
   // Seed for Random Number Generator.
   OptionValue<uint32_t> random_seed_{0};
+
+  // Whether decompose expressions or not.
+  OptionValue<bool> decompose_expressions_{false};
 };
 
 std::ostream& operator<<(std::ostream& os,

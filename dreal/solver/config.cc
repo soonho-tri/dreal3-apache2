@@ -78,6 +78,14 @@ uint32_t Config::random_seed() const { return random_seed_.get(); }
 
 OptionValue<uint32_t>& Config::mutable_random_seed() { return random_seed_; }
 
+bool Config::decompose_expressions() const {
+  return decompose_expressions_.get();
+}
+
+OptionValue<bool>& Config::mutable_decompose_expressions() {
+  return decompose_expressions_;
+}
+
 std::ostream& operator<<(std::ostream& os,
                          const Config::SatDefaultPhase& sat_default_phase) {
   switch (sat_default_phase) {
@@ -107,14 +115,15 @@ ostream& operator<<(ostream& os, const Config& config) {
              "nlopt_maxeval = {}, "
              "nlopt_maxtime = {}, "
              "sat_default_phase = {}, "
-             "random_seed = {}"
-             ")",
-             config.precision(), config.produce_models(), config.use_polytope(),
-             config.use_polytope_in_forall(), config.use_worklist_fixpoint(),
-             config.use_local_optimization(), config.nlopt_ftol_rel(),
-             config.nlopt_ftol_abs(), config.nlopt_maxeval(),
-             config.nlopt_maxtime(), config.sat_default_phase(),
-             config.random_seed());
+             "random_seed = {}, "
+             "decompose_expressions = {}",
+             ")", config.precision(), config.produce_models(),
+             config.use_polytope(), config.use_polytope_in_forall(),
+             config.use_worklist_fixpoint(), config.use_local_optimization(),
+             config.nlopt_ftol_rel(), config.nlopt_ftol_abs(),
+             config.nlopt_maxeval(), config.nlopt_maxtime(),
+             config.sat_default_phase(), config.random_seed(),
+             config.decompose_expressions());
 }
 
 }  // namespace dreal
