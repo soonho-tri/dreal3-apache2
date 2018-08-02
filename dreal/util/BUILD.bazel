@@ -40,6 +40,24 @@ dreal_cc_library(
 )
 
 dreal_cc_library(
+    name = "expression_decomposer",
+    srcs = [
+        "expression_decomposer.cc",
+    ],
+    hdrs = [
+        "expression_decomposer.h",
+    ],
+    deps = [
+        ":assert",
+        ":exception",
+        ":logging",
+        ":scoped_unordered_map",
+        ":scoped_vector",
+        "//dreal/symbolic",
+    ],
+)
+
+dreal_cc_library(
     name = "interval",
     srcs = [
         "interval.cc",
