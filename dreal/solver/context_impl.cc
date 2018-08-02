@@ -93,10 +93,16 @@ void Context::Impl::Assert(const Formula& f) {
   if (box().empty()) {
     return;
   }
-  if (FilterAssertion(f, &box()) == FilterAssertionResult::NotFiltered) {
-    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is added.", f);
+
+  Formula new_f{expression_decomposer_.Decompose(f)};
+  for (const Variable& v : expression_decomposer_.NewVariables()) {
+    DeclareVariable(v, false);
+  }
+
+  if (FilterAssertion(new_f, &box()) == FilterAssertionResult::NotFiltered) {
+    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is added.", new_f);
     IfThenElseEliminator ite_eliminator;
-    const Formula no_ite{ite_eliminator.Process(f)};
+    const Formula no_ite{ite_eliminator.Process(new_f)};
     for (const Variable& ite_var : ite_eliminator.variables()) {
       // Note that the following does not mark `ite_var` as a model variable.
       AddToBox(ite_var);
@@ -104,7 +110,7 @@ void Context::Impl::Assert(const Formula& f) {
     stack_.push_back(no_ite);
     return;
   } else {
-    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is not added.", f);
+    DREAL_LOG_DEBUG("ContextImpl::Assert: {} is not added.", new_f);
     DREAL_LOG_DEBUG("Box=\n{}", box());
     return;
   }
@@ -300,10 +306,12 @@ void Context::Impl::Pop() {
   stack_.pop();
   boxes_.pop();
   sat_solver_.Pop();
+  expression_decomposer_.Push();
 }
 
 void Context::Impl::Push() {
   DREAL_LOG_DEBUG("ContextImpl::Push()");
+  expression_decomposer_.Push();
   sat_solver_.Push();
   boxes_.push();
   boxes_.push_back(boxes_.last());

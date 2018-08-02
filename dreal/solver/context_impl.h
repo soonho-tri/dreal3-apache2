@@ -9,6 +9,7 @@
 
 #include "dreal/solver/sat_solver.h"
 #include "dreal/solver/theory_solver.h"
+#include "dreal/util/expression_decomposer.h"
 #include "dreal/util/scoped_vector.h"
 
 namespace dreal {
@@ -78,6 +79,7 @@ class Context::Impl {
   SatSolver sat_solver_;
   std::unordered_set<Variable::Id> model_variables_;
   TheorySolver theory_solver_;
+  ExpressionDecomposer expression_decomposer_;
 };
 
 }  // namespace dreal
