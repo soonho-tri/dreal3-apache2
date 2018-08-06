@@ -12,7 +12,8 @@ namespace dreal {
 /// formula by introducing extra Boolean variables (Tseitin transformation).
 class TseitinCnfizer {
  public:
-  /// Convert @p f into an equi-satisfiable formula @c f' in CNF.
+  /// Convert @p f into a set of clauses whose conjunction is equi-satisfiable
+  /// to @p f.
   std::vector<Formula> Convert(const Formula& f);
 
   /// Returns a const reference of `map_` member.

@@ -5,6 +5,7 @@
 #include <iterator>
 #include <set>
 #include <string>
+#include <experimental/optional>
 
 #include "dreal/util/assert.h"
 #include "dreal/util/exception.h"
@@ -15,7 +16,10 @@ namespace dreal {
 using std::set;
 using std::string;
 using std::to_string;
+using std::unordered_map;
 using std::vector;
+
+using std::experimental::optional;
 
 namespace {
 // Forward declarations for the helper functions.
@@ -26,6 +30,62 @@ void CnfizeConjunction(const Variable& b, const Formula& f,
                        vector<Formula>* clauses);
 void CnfizeDisjunction(const Variable& b, const Formula& f,
                        vector<Formula>* clauses);
+
+// Updates the formula susbtitution `subst` : Variable → Formula.
+//  - If `clause` is a positive literal `x`, add `x ↦ True` to
+//    `subst`.
+//  - If `clause` is a negative literal, `¬x`, add `x ↦ False`
+//    to `subst`. Otherwise, `subst` is not changed.
+//
+// Returns the variable if `subst` is updated.
+optional<Variable> UpdateSubstitutionIfPure(const Formula& clause,
+                                            FormulaSubstitution* subst) {
+  if (is_variable(clause)) {
+    // Positive literal.
+    const Variable var{get_variable(clause)};
+    const auto result = subst->emplace(var, Formula::True());
+    return result.second ? var : optional<Variable>();
+  } else if (is_negation(clause) && is_variable(get_operand(clause))) {
+    // Negative literal.
+    const Variable var{get_variable(get_operand(clause))};
+    const auto result = subst->emplace(var, Formula::False());
+    return result.second ? var : optional<Variable>();
+  }
+  return {};
+}
+
+// Eliminates pure literals in `clauses`. It also eliminates any true
+// clauses in the vector. The `map` is used to check if a variable is
+// temporary or not.
+void EliminatePureLiterals(const std::map<Variable, Formula>& map,
+                           vector<Formula>* clauses) {
+  // Repeat:
+  //   1. Find a unit clause in clauses. If not exist, quit.
+  //   2. Propagate pure literals. Remove clause if it's a temporary variable
+  //      or true.
+  FormulaSubstitution subst;
+  optional<Variable> subst_result;
+  do {
+    auto it = clauses->begin();
+    while (it != clauses->end()) {
+      subst_result = UpdateSubstitutionIfPure(*it, &subst);
+      if (!subst_result && !is_atomic(*it)) {
+        *it = it->Substitute(subst);
+        // Need to check if clause becomes unit.
+        subst_result = UpdateSubstitutionIfPure(*it, &subst);
+      }
+      // Remove the clause if:
+      //  - the clause is true or;
+      //  - the variable is temporary.
+      if (is_true(*it) || (subst_result && map.count(*subst_result) > 0)) {
+        it = clauses->erase(it);
+      } else {
+        ++it;
+      }
+    }
+  } while (subst_result);
+}
+
 }  // namespace
 
 // The main function of the TseitinCnfizer:
@@ -34,23 +94,11 @@ void CnfizeDisjunction(const Variable& b, const Formula& f,
 //  - Then it cnfizes each `b ⇔ f` and make a conjunction of them.
 vector<Formula> TseitinCnfizer::Convert(const Formula& f) {
   map_.clear();
-  vector<Formula> ret;
-  const Formula head{Visit(f)};
-  if (map_.empty()) {
-    return {head};
-  }
+  vector<Formula> ret{Visit(f)};
   for (auto const& p : map_) {
-    if (get_variable(head).equal_to(p.first)) {
-      if (is_conjunction(p.second)) {
-        const set<Formula>& conjuncts(get_operands(p.second));
-        copy(conjuncts.begin(), conjuncts.end(), back_inserter(ret));
-      } else {
-        ret.push_back(p.second);
-      }
-    } else {
-      Cnfize(p.first, p.second, &ret);
-    }
+    Cnfize(p.first, p.second, &ret);
   }
+  EliminatePureLiterals(map_, &ret);
   return ret;
 }
 
@@ -140,8 +188,8 @@ Formula TseitinCnfizer::VisitNegation(const Formula& f) {
 }
 
 namespace {
-// Cnfize b ⇔ f and add it to @p clauses. It calls Cnfize<FormulaKind> using
-// pattern-matching.
+// Cnfizes b ⇔ f and adds it to @p clauses. It calls
+// Cnfize<FormulaKind> using pattern-matching.
 void Cnfize(const Variable& b, const Formula& f, vector<Formula>* clauses) {
   switch (f.get_kind()) {
     case FormulaKind::False:

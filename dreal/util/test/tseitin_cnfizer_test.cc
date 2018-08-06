@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "dreal/symbolic/symbolic.h"
+#include "dreal/symbolic/symbolic_test_util.h"
 #include "dreal/util/assert.h"
 
 using std::cout;
@@ -17,7 +18,12 @@ using std::vector;
 namespace dreal {
 namespace {
 
-// Naive SAT solving process.
+// vector<Formula> EliminatePureLiterals(vector<Formula> formulas) {
+//   // Find a pure literal (a clause whose length is 1)
+// }
+
+// Naive SAT solving process. Given a Boolean formula, `f`, it returns
+// its satisfiability.
 bool IsSatisfiable(const Formula& f) {
   if (is_true(f)) {
     return true;
@@ -89,6 +95,31 @@ TEST_F(TseitinCnfizerTest, Test) {
   for (const auto& f : formulas) {
     EXPECT_TRUE(CnfChecker(f));
   }
+}
+
+TEST_F(TseitinCnfizerTest, Conjunction) {
+  const Formula f{(x_ > y_) && (y_ < 10)};
+  const Formula cnfized{make_conjunction(cnfizer_.Convert(f))};
+  EXPECT_PRED2(FormulaEqual, f, cnfized);
+}
+
+TEST_F(TseitinCnfizerTest, Disjunction) {
+  const Formula f{(x_ >= y_) || (y_ <= 10)};
+  const Formula cnfized{make_conjunction(cnfizer_.Convert(f))};
+  EXPECT_PRED2(FormulaEqual, f, cnfized);
+}
+
+TEST_F(TseitinCnfizerTest, Negation1) {
+  const Formula f{!(x_ > y_) && !(y_ < 10)};
+  const Formula cnfized{make_conjunction(cnfizer_.Convert(f))};
+  EXPECT_PRED2(FormulaEqual, f, cnfized);
+}
+
+TEST_F(TseitinCnfizerTest, Negation2) {
+  const Formula f{!((x_ > y_) && (y_ < 10))};
+  const Formula cnfized{make_conjunction(cnfizer_.Convert(f))};
+  const Formula expected{!(x_ > y_) || !(y_ < 10)};
+  EXPECT_PRED2(FormulaEqual, cnfized, expected);
 }
 
 }  // namespace
