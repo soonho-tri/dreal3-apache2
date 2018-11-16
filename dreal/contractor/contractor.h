@@ -14,14 +14,15 @@ namespace dreal {
 
 // Forward declarations.
 class ContractorCell;
-class ContractorId;
-class ContractorInteger;
-class ContractorSeq;
+class ContractorFixpoint;
 class ContractorIbexFwdbwd;
 class ContractorIbexPolytope;
-class ContractorFixpoint;
-class ContractorWorklistFixpoint;
+class ContractorId;
+class ContractorInteger;
 class ContractorJoin;
+class ContractorSampling;
+class ContractorSeq;
+class ContractorWorklistFixpoint;
 template <typename ContextType>
 class ContractorForall;
 
@@ -32,15 +33,16 @@ using TerminationCondition =
 class Contractor {
  public:
   enum class Kind {
-    ID,
-    INTEGER,
-    SEQ,
+    FIXPOINT,
+    FORALL,
     IBEX_FWDBWD,
     IBEX_POLYTOPE,
-    FIXPOINT,
-    WORKLIST_FIXPOINT,
-    FORALL,
+    ID,
+    INTEGER,
     JOIN,
+    SAMPLING,
+    SEQ,
+    WORKLIST_FIXPOINT,
   };
 
   explicit Contractor(const Config& config);
@@ -80,6 +82,9 @@ class Contractor {
   friend Contractor make_contractor_id(const Config& config);
   friend Contractor make_contractor_integer(const Box& box,
                                             const Config& config);
+  friend Contractor make_contractor_sampling(
+      const std::vector<Formula>& formulas, const Box& box,
+      const Config& config);
   friend Contractor make_contractor_seq(
       const std::vector<Contractor>& contractors, const Config& config);
   friend Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
@@ -106,6 +111,8 @@ class Contractor {
   friend std::shared_ptr<ContractorId> to_id(const Contractor& contractor);
   friend std::shared_ptr<ContractorInteger> to_integer(
       const Contractor& contractor);
+  friend std::shared_ptr<ContractorSampling> to_sampling(
+      const Contractor& contractor);
   friend std::shared_ptr<ContractorSeq> to_seq(const Contractor& contractor);
   friend std::shared_ptr<ContractorIbexFwdbwd> to_ibex_fwdbwd(
       const Contractor& contractor);
@@ -131,6 +138,14 @@ Contractor make_contractor_id(const Config& config);
 ///
 /// @see ContractorInteger.
 Contractor make_contractor_integer(const Box& box, const Config& config);
+
+/// Returns a sampling contractor. It randomly sample a point and
+/// contracts a box to the point if the point satisfies all the
+/// formulas. Otherwise, it has no-op.
+///
+/// @see ContractorInteger.
+Contractor make_contractor_sampling(const std::vector<Formula>& formulas,
+                                    const Box& box, const Config& config);
 
 /// Returns a sequential contractor `C` from a vector of contractors
 /// @p vec = [C₁, ..., Cₙ]. It applies `Cᵢ` sequentially. That is, we have:
@@ -196,6 +211,9 @@ bool is_id(const Contractor& contractor);
 
 /// Returns true if @p contractor is integer contractor.
 bool is_integer(const Contractor& contractor);
+
+/// Returns true if @p contractor is sampling contractor.
+bool is_sampling(const Contractor& contractor);
 
 /// Returns true if @p contractor is sequential contractor.
 bool is_seq(const Contractor& contractor);

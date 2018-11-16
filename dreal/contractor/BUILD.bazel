@@ -30,6 +30,8 @@ dreal_cc_library(
         "contractor_integer.h",
         "contractor_join.cc",
         "contractor_join.h",
+        "contractor_sampling.cc",
+        "contractor_sampling.h",
         "contractor_seq.cc",
         "contractor_seq.h",
         "contractor_worklist_fixpoint.cc",

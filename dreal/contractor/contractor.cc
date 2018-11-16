@@ -11,6 +11,7 @@
 #include "dreal/contractor/contractor_id.h"
 #include "dreal/contractor/contractor_integer.h"
 #include "dreal/contractor/contractor_join.h"
+#include "dreal/contractor/contractor_sampling.h"
 #include "dreal/contractor/contractor_seq.h"
 #include "dreal/contractor/contractor_worklist_fixpoint.h"
 #include "dreal/util/stat.h"
@@ -103,6 +104,11 @@ Contractor make_contractor_integer(const Box& box, const Config& config) {
   }
 }
 
+Contractor make_contractor_sampling(const vector<Formula>& formulas,
+                                    const Box& box, const Config& config) {
+  return Contractor{make_shared<ContractorSampling>(formulas, box, config)};
+}
+
 Contractor make_contractor_seq(const vector<Contractor>& contractors,
                                const Config& config) {
   return Contractor{make_shared<ContractorSeq>(Flatten(contractors), config)};
@@ -159,6 +165,9 @@ bool is_id(const Contractor& contractor) {
 }
 bool is_integer(const Contractor& contractor) {
   return contractor.kind() == Contractor::Kind::INTEGER;
+}
+bool is_sampling(const Contractor& contractor) {
+  return contractor.kind() == Contractor::Kind::SAMPLING;
 }
 bool is_seq(const Contractor& contractor) {
   return contractor.kind() == Contractor::Kind::SEQ;
