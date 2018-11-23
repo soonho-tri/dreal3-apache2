@@ -18,6 +18,7 @@ clang-tidy $@ -header-filter=$(realpath .) -system-headers=0 -p ./ \
 	   -I/usr/local/opt/ibex@2.7.4/include/ibex \
 	   -I/usr/local/opt/ibex@2.7.4/include/ibex/3rd \
 	   -I/usr/local/opt/clp/include/clp/coin \
+	   -I/usr/local/opt/eigen/include/eigen3 \
 	   -I/usr/local/opt/coinutils/include/coinutils/coin \
 	   -I/usr/local/opt/python@2/Frameworks/Python.framework/Versions/2.7/include/python2.7 \
            -isystem ${BAZEL_EXTERNAL}/spdlog/include \
@@ -32,6 +33,7 @@ clang-tidy $@ -header-filter=$(realpath .) -system-headers=0 -p ./ \
            -isystem /usr/local/include \
            -isystem /usr/local/opt/flex/include \
            -isystem /usr/local/opt/flex/include \
+	   -I/usr/include/eigen3 \
 
 if [ ${LAST_ARG} == "--fix" ];
 then

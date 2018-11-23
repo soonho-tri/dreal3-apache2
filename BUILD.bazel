@@ -116,6 +116,7 @@ pkg_deb(
     depends = [
         "coinor-libclp-dev",
         "libbz2-dev",
+        "libeigen3-dev",
         "libibex-dev",
         "libnlopt-dev",
         # The followings are Build-Depends:

@@ -14,6 +14,7 @@ bison
 coinor-libclp-dev
 g++
 g++-5
+libeigen3-dev
 libfl-dev
 libibex-dev
 libnlopt-dev
