@@ -1,6 +1,16 @@
 load("//third_party/com_github_robotlocomotion_drake:tools/workspace/cpplint.bzl", "cpplint")
 load("//tools:dreal.bzl", "dreal_cc_googletest")
 
+dreal_cc_googletest(
+    name = "eigen3_test",
+    size = "small",
+    srcs = ["eigen3_test.cc"],
+    tags = ["extlib"],
+    deps = [
+        "@eigen3",
+    ],
+)
+
 cc_test(
     name = "abseil_test",
     size = "small",
