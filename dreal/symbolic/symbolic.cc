@@ -466,4 +466,93 @@ ostream& operator<<(ostream& os, const RelationalOperator op) {
   DREAL_UNREACHABLE();
 }
 
+namespace {
+
+class ToErrorFunctionVisitor {
+ public:
+  Expression Visit(const Formula& f) const {
+    return VisitFormula<Expression>(this, f);
+  }
+
+ private:
+  Expression VisitFalse(const Formula&) const { return 1.0; }
+
+  Expression VisitTrue(const Formula&) const { return -1.0; }
+
+  Expression VisitVariable(const Formula&) const {
+    throw std::runtime_error("TODO");
+  }
+
+  Expression VisitEqualTo(const Formula& f) const {
+    const Expression& lhs{get_lhs_expression(f)};
+    const Expression& rhs{get_rhs_expression(f)};
+    return sqrt(pow(lhs - rhs, 2));
+  }
+
+  Expression VisitNotEqualTo(const Formula& f) const {
+    const Expression& lhs{get_lhs_expression(f)};
+    const Expression& rhs{get_rhs_expression(f)};
+    return -sqrt(pow(lhs - rhs, 2));
+  }
+
+  Expression VisitGreaterThan(const Formula& f) const {
+    //    lhs > rhs
+    // =>   0 > rhs - lhs
+    const Expression& lhs{get_lhs_expression(f)};
+    const Expression& rhs{get_rhs_expression(f)};
+    return rhs - lhs;
+  }
+
+  Expression VisitGreaterThanOrEqualTo(const Formula& f) const {
+    //    lhs > rhs
+    // =>   0 > rhs - lhs
+    const Expression& lhs{get_lhs_expression(f)};
+    const Expression& rhs{get_rhs_expression(f)};
+    return rhs - lhs;
+  }
+
+  Expression VisitLessThan(const Formula& f) const {
+    //    lhs < rhs
+    // => lhs - rhs < 0
+    const Expression& lhs{get_lhs_expression(f)};
+    const Expression& rhs{get_rhs_expression(f)};
+    return lhs - rhs;
+  }
+
+  Expression VisitLessThanOrEqualTo(const Formula& f) const {
+    //    lhs < rhs
+    // => lhs - rhs < 0
+    const Expression& lhs{get_lhs_expression(f)};
+    const Expression& rhs{get_rhs_expression(f)};
+    return lhs - rhs;
+  }
+
+  Expression VisitConjunction(const Formula&) const {
+    throw std::runtime_error("TODO");
+  }
+
+  Expression VisitDisjunction(const Formula&) const {
+    throw std::runtime_error("TODO");
+  }
+
+  Expression VisitNegation(const Formula& f) const {
+    return -Visit(get_operand(f));
+  }
+
+  Expression VisitForall(const Formula&) const {
+    throw std::runtime_error("TODO");
+  }
+
+  // Makes VisitFormula a friend of this class so that it can use private
+  // operator()s.
+  friend Expression drake::symbolic::VisitFormula<Expression>(
+      const ToErrorFunctionVisitor*, const Formula&);
+};
+
+}  // namespace
+
+Expression ToErrorFunction(const Formula& f) {
+  return ToErrorFunctionVisitor{}.Visit(f);
+}
+
 }  // namespace dreal

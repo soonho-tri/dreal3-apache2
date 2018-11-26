@@ -119,4 +119,13 @@ RelationalOperator operator!(RelationalOperator op);
 /// Outputs @p op to @p os.
 std::ostream& operator<<(std::ostream& os, RelationalOperator op);
 
+/// Changes a symbolic formula f to an error function. When the
+/// symbolic formula is not satisfied at X, the returned error
+/// function, when its evaluated at X, gives a positive value which
+/// measures the deviation from the sat boundary.
+///
+/// For example, for `f := sin(x) <= 0`, `ToErrorFunction(f)` returns
+/// `sin(x)`.
+Expression ToErrorFunction(const Formula& f);
+
 }  // namespace dreal
