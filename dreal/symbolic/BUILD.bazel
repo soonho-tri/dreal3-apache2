@@ -85,7 +85,7 @@ filegroup(
     srcs = [
         "prefix_printer.h",
         "symbolic.h",
-        "//third_party/com_github_robotlocomotion_drake:headers",
+        "//third_party/com_github_robotlocomotion_drake:symbolic_headers",
     ],
     visibility = ["//:__pkg__"],
 )

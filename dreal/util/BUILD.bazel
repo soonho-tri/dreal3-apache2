@@ -21,6 +21,17 @@ dreal_cc_library(
 )
 
 dreal_cc_library(
+    name = "eigen",
+    hdrs = [
+        "eigen.h",
+    ],
+    visibility = ["//dreal:__subpackages__"],
+    deps = [
+        "//third_party/com_github_robotlocomotion_drake:drake_util_eigen",
+    ],
+)
+
+dreal_cc_library(
     name = "box",
     srcs = [
         "box.cc",
@@ -449,6 +460,7 @@ filegroup(
         "box.h",
         "option_value.h",
         "scoped_vector.h",
+        "//third_party/com_github_robotlocomotion_drake:util_headers",
     ],
     visibility = ["//:__pkg__"],
 )
