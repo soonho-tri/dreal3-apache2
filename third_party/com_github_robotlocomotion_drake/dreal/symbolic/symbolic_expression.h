@@ -12,12 +12,27 @@
 #include <utility>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include "dreal/symbolic/hash.h"
 #include "dreal/symbolic/symbolic_environment.h"
 #include "dreal/symbolic/symbolic_variable.h"
 #include "dreal/symbolic/symbolic_variables.h"
 
 namespace dreal {
+
+/// A row vector of any size, templated on scalar type.
+template <typename Scalar>
+using RowVectorX = Eigen::Matrix<Scalar, 1, Eigen::Dynamic>;
+
+/// A column vector of any size, templated on scalar type.
+template <typename Scalar>
+using VectorX = Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
+
+/// A matrix of dynamic size, templated on scalar type.
+template <typename Scalar>
+using MatrixX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+
 namespace drake {
 namespace symbolic {
 
@@ -175,6 +190,15 @@ class Expression {
   /** Constructs a constant (floating-point). */
   // NOLINTNEXTLINE(runtime/explicit): This conversion is desirable.
   Expression(double d);
+
+  /** Constructs a constant. */
+  // NOLINTNEXTLINE(runtime/explicit): This conversion is desirable.
+  Expression(int n) : Expression{static_cast<double>(n)} {}
+
+  /** Constructs a constant. */
+  // NOLINTNEXTLINE(runtime/explicit): This conversion is desirable.
+  Expression(long n) : Expression{static_cast<double>(n)} {}
+
   /** Constructs an expression from @p var.
    * @pre @p var is neither a dummy nor a BOOLEAN variable.
    */
@@ -223,7 +247,8 @@ class Expression {
 
   /** Provides lexicographical ordering between expressions.
       This function is used as a compare function in map<Expression> and
-      set<Expression> via std::less<dreal::drake::symbolic::Expression>. */
+      set<Expression> via std::less<dreal::dreal::drake::symbolic::Expression>.
+   */
   bool Less(const Expression& e) const;
 
   /** Checks if this symbolic expression is convertible to Polynomial. */
@@ -294,6 +319,13 @@ class Expression {
    * @throws std::runtime_error if it is not differentiable.
    */
   Expression Differentiate(const Variable& x) const;
+
+  /** Let `f` be this Expression, computes a row vector of derivatives,
+   * `[∂f/∂vars(0), ... , ∂f/∂vars(n-1)]` with respect to the variables
+   * @p vars.
+   */
+  RowVectorX<Expression> Jacobian(
+      const Eigen::Ref<const VectorX<Variable>>& vars) const;
 
   /** Returns string representation of Expression. */
   std::string to_string() const;
@@ -707,8 +739,105 @@ const Expression& get_else_expression(const Expression& e);
  */
 const std::string& get_uninterpreted_function_name(const Expression& e);
 
+// Matrix<Expression> * Matrix<double> => Matrix<Expression>
+template <typename MatrixL, typename MatrixR>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<MatrixL>, MatrixL>::value &&
+        std::is_base_of<Eigen::MatrixBase<MatrixR>, MatrixR>::value &&
+        std::is_same<typename MatrixL::Scalar, Expression>::value &&
+        std::is_same<typename MatrixR::Scalar, double>::value,
+    Eigen::Matrix<Expression, MatrixL::RowsAtCompileTime,
+                  MatrixR::ColsAtCompileTime>>::type
+operator*(const MatrixL& lhs, const MatrixR& rhs) {
+  return lhs.template cast<Expression>() * rhs.template cast<Expression>();
+}
+
+// Matrix<double> * Matrix<Expression> => Matrix<Expression>
+template <typename MatrixL, typename MatrixR>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<MatrixL>, MatrixL>::value &&
+        std::is_base_of<Eigen::MatrixBase<MatrixR>, MatrixR>::value &&
+        std::is_same<typename MatrixL::Scalar, double>::value &&
+        std::is_same<typename MatrixR::Scalar, Expression>::value,
+    Eigen::Matrix<Expression, MatrixL::RowsAtCompileTime,
+                  MatrixR::ColsAtCompileTime>>::type
+operator*(const MatrixL& lhs, const MatrixR& rhs) {
+  return lhs.template cast<Expression>() * rhs.template cast<Expression>();
+}
+
 Expression operator+(const Variable& var);
 Expression operator-(const Variable& var);
+
+// Matrix<Expression> * Matrix<Variable> => Matrix<Expression>
+template <typename MatrixL, typename MatrixR>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<MatrixL>, MatrixL>::value &&
+        std::is_base_of<Eigen::MatrixBase<MatrixR>, MatrixR>::value &&
+        std::is_same<typename MatrixL::Scalar, Expression>::value &&
+        std::is_same<typename MatrixR::Scalar, Variable>::value,
+    Eigen::Matrix<Expression, MatrixL::RowsAtCompileTime,
+                  MatrixR::ColsAtCompileTime>>::type
+operator*(const MatrixL& lhs, const MatrixR& rhs) {
+  return lhs * rhs.template cast<Expression>();
+}
+
+// Matrix<Variable> * Matrix<Expression> => Matrix<Expression>
+template <typename MatrixL, typename MatrixR>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<MatrixL>, MatrixL>::value &&
+        std::is_base_of<Eigen::MatrixBase<MatrixR>, MatrixR>::value &&
+        std::is_same<typename MatrixL::Scalar, Variable>::value &&
+        std::is_same<typename MatrixR::Scalar, Expression>::value,
+    Eigen::Matrix<Expression, MatrixL::RowsAtCompileTime,
+                  MatrixR::ColsAtCompileTime>>::type
+operator*(const MatrixL& lhs, const MatrixR& rhs) {
+  return lhs.template cast<Expression>() * rhs;
+}
+
+// Matrix<Variable> * Matrix<double> => Matrix<Expression>
+template <typename MatrixL, typename MatrixR>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<MatrixL>, MatrixL>::value &&
+        std::is_base_of<Eigen::MatrixBase<MatrixR>, MatrixR>::value &&
+        std::is_same<typename MatrixL::Scalar, Variable>::value &&
+        std::is_same<typename MatrixR::Scalar, double>::value,
+    Eigen::Matrix<Expression, MatrixL::RowsAtCompileTime,
+                  MatrixR::ColsAtCompileTime>>::type
+operator*(const MatrixL& lhs, const MatrixR& rhs) {
+  return lhs.template cast<Expression>() * rhs.template cast<Expression>();
+}
+
+// Matrix<double> * Matrix<Variable> => Matrix<Expression>
+template <typename MatrixL, typename MatrixR>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<MatrixL>, MatrixL>::value &&
+        std::is_base_of<Eigen::MatrixBase<MatrixR>, MatrixR>::value &&
+        std::is_same<typename MatrixL::Scalar, double>::value &&
+        std::is_same<typename MatrixR::Scalar, Variable>::value,
+    Eigen::Matrix<Expression, MatrixL::RowsAtCompileTime,
+                  MatrixR::ColsAtCompileTime>>::type
+operator*(const MatrixL& lhs, const MatrixR& rhs) {
+  return lhs.template cast<Expression>() * rhs.template cast<Expression>();
+}
+
+/// Evaluates a symbolic matrix `m` using the `env` by evaluating each element.
+/// @returns a matrix of double whose size is the size of `m`.
+/// @throws std::runtime_error if NaN is detected during evaluation.
+template <typename Derived>
+auto Evaluate(const Eigen::MatrixBase<Derived>& m, const Environment& env) {
+  static_assert(std::is_same<typename Derived::Scalar, Expression>::value,
+                "Evaluate only accepts a symbolic matrix.");
+  // Without the trailing `.eval()`, it returns an Eigen Expression (of type
+  // CwiseUnaryOp) and `symbolic::Expression::Evaluate` is only called when a
+  // value is needed (i.e. lazy-evaluation). We add the trailing `.eval()` call
+  // to enforce eager-evaluation and provide a fully evaluated matrix (of
+  // double) to a caller.
+  //
+  // Please refer to https://eigen.tuxfamily.org/dox/TopicPitfalls.html for more
+  // information.
+  return m.unaryExpr([&env](const Expression& e) { return e.Evaluate(env); })
+      .eval();
+}
 
 }  // namespace symbolic
 
@@ -755,3 +884,137 @@ struct numeric_limits<dreal::drake::symbolic::Expression>
     : public numeric_limits<double> {};
 
 }  // namespace std
+
+// Define Eigen traits needed for Matrix<dreal::drake::symbolic::Expression>.
+namespace Eigen {
+// Eigen scalar type traits for Matrix<dreal::drake::symbolic::Expression>.
+template <>
+struct NumTraits<dreal::drake::symbolic::Expression>
+    : GenericNumTraits<dreal::drake::symbolic::Expression> {
+  static inline int digits10() { return 0; }
+};
+
+// Ubuntu 16.04 ships eigen-3.2.92 while eigen>=3.3.0 provides
+// ScalarBinaryOpTraits. FYI, Ubuntu 18.04 ships eigen-3.3.4.
+//
+// TODO(soonho): When we drop Ubuntu 16.04 support, remove this #if.
+#if EIGEN_VERSION_AT_LEAST(3, 3, 0)  // Eigen Version >= v3.3.0
+// Informs Eigen that Variable op Variable gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<dreal::drake::symbolic::Variable,
+                            dreal::drake::symbolic::Variable, BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+
+// Informs Eigen that Variable op Expression gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<dreal::drake::symbolic::Variable,
+                            dreal::drake::symbolic::Expression, BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+
+// Informs Eigen that Expression op Variable gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<dreal::drake::symbolic::Expression,
+                            dreal::drake::symbolic::Variable, BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+
+// Informs Eigen that Variable op double gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<dreal::drake::symbolic::Variable, double,
+                            BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+
+// Informs Eigen that double op Variable gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<double, dreal::drake::symbolic::Variable,
+                            BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+
+// Informs Eigen that Expression op double gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<dreal::drake::symbolic::Expression, double,
+                            BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+
+// Informs Eigen that double op Expression gets Expression.
+template <typename BinaryOp>
+struct ScalarBinaryOpTraits<double, dreal::drake::symbolic::Expression,
+                            BinaryOp> {
+  enum { Defined = 1 };
+  typedef dreal::drake::symbolic::Expression ReturnType;
+};
+#endif
+
+}  // namespace Eigen
+
+namespace dreal {
+namespace drake {
+namespace symbolic {
+/// Computes the Jacobian matrix J of the vector function @p f with respect to
+/// @p vars. J(i,j) contains ∂f(i)/∂vars(j).
+///
+///  For example, Jacobian([x * cos(y), x * sin(y), x^2], {x, y}) returns the
+///  following 3x2 matrix:
+///  <pre>
+///  = |cos(y)   -x * sin(y)|
+///    |sin(y)    x * cos(y)|
+///    | 2 * x             0|
+///  </pre>
+///
+/// @pre {@p vars is non-empty}.
+MatrixX<Expression> Jacobian(const Eigen::Ref<const VectorX<Expression>>& f,
+                             const std::vector<Variable>& vars);
+
+/// Computes the Jacobian matrix J of the vector function @p f with respect to
+/// @p vars. J(i,j) contains ∂f(i)/∂vars(j).
+///
+/// @pre {@p vars is non-empty}.
+MatrixX<Expression> Jacobian(const Eigen::Ref<const VectorX<Expression>>& f,
+                             const Eigen::Ref<const VectorX<Variable>>& vars);
+
+/// Returns the Taylor series expansion of `f` around `a` of order `order`.
+///
+/// @param[in] f     Symbolic expression to approximate using Taylor series
+///                  expansion.
+/// @param[in] a     Symbolic environment which specifies the point of
+///                  approximation. If a partial environment is provided,
+///                  the unspecified variables are treated as symbolic
+///                  variables (e.g. decision variable).
+/// @param[in] order Positive integer which specifies the maximum order of the
+///                  resulting polynomial approximating `f` around `a`.
+Expression TaylorExpand(const Expression& f, const Environment& a, int order);
+
+/// Checks if two Eigen::Matrix<Expression> @p m1 and @p m2 are structurally
+/// equal. That is, it returns true if and only if `m1(i, j)` is structurally
+/// equal to `m2(i, j)` for all `i`, `j`.
+template <typename DerivedA, typename DerivedB>
+typename std::enable_if<
+    std::is_base_of<Eigen::MatrixBase<DerivedA>, DerivedA>::value &&
+        std::is_base_of<Eigen::MatrixBase<DerivedB>, DerivedB>::value &&
+        std::is_same<typename DerivedA::Scalar, Expression>::value &&
+        std::is_same<typename DerivedB::Scalar, Expression>::value,
+    bool>::type
+CheckStructuralEquality(const DerivedA& m1, const DerivedB& m2) {
+  if (m1.rows() != m2.rows() || m1.cols() != m2.cols()) {
+    throw std::runtime_error(
+        "CheckStructuralequality(m1, m2): Size of a1 and a2 are not the same.");
+  }
+  // Note that std::equal_to<Expression> calls Expression::EqualTo which checks
+  // structural equality between two expressions.
+  return m1.binaryExpr(m2, std::equal_to<Expression>{}).all();
+}
+
+}  // namespace symbolic
+}  // namespace drake
+}  // namespace dreal

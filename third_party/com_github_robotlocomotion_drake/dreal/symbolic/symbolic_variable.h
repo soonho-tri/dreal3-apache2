@@ -6,6 +6,8 @@
 #include <ostream>
 #include <string>
 
+#include <Eigen/Core>
+
 #include "dreal/symbolic/hash.h"
 
 namespace dreal {
@@ -52,9 +54,10 @@ class Variable {
    * type by default.*/
   explicit Variable(std::string name, Type type = Type::CONTINUOUS);
 
-  /** Constructs a variable with @p name and @p type. @p model_variable is ignored. */
-  [[deprecated("This is only for backward-compatibility.")]]
-  Variable(std::string name, Type type, bool model_variable);
+  /** Constructs a variable with @p name and @p type. @p model_variable is
+   * ignored. */
+  [[deprecated("This is only for backward-compatibility.")]] Variable(
+      std::string name, Type type, bool model_variable);
 
   /** Checks if this is a dummy variable (ID = 0) which is created by
    *  the default constructor. */
@@ -126,3 +129,12 @@ struct hash<dreal::drake::symbolic::Variable> {
 };
 
 }  // namespace std
+
+namespace Eigen {
+// Eigen scalar type traits for Matrix<drake::symbolic::Variable>.
+template <>
+struct NumTraits<dreal::drake::symbolic::Variable>
+    : GenericNumTraits<dreal::drake::symbolic::Variable> {
+  static inline int digits10() { return 0; }
+};
+}  // namespace Eigen
