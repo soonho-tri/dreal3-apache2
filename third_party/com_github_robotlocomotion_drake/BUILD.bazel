@@ -21,6 +21,7 @@ filegroup(
 )
 
 DRAKE_UTIL_EIGEN_HEADERS = [
+    "dreal/util/autodiffxd.h",
     "dreal/util/eigen_autodiff_overloads.h",
     "dreal/util/eigen_autodiff_types.h",
     "dreal/util/eigen_types.h",
