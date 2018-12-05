@@ -161,6 +161,14 @@ void MainProgram::AddOptions() {
   opt_.add("0" /* Default */, false /* Required? */,
            1 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
+           "Set branching strategy.\n"
+           "  0 = Max Diam (default)\n"
+           "  1 = Gradient Descent\n",
+           "--branching-strategy");
+
+  opt_.add("0" /* Default */, false /* Required? */,
+           1 /* Number of args expected. */,
+           0 /* Delimiter if expecting multiple args. */,
            "Set a seed for the random number generator.", "--random-seed");
 }
 
@@ -324,6 +332,16 @@ void MainProgram::ExtractOptions() {
     config_.mutable_random_seed().set_from_command_line(random_seed);
     DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --random-seed = {}",
                     config_.random_seed());
+  }
+
+  // --branching-strategy
+  if (opt_.isSet("--branching-strategy")) {
+    int branching_strategy{0};
+    opt_.get("--branching-strategy")->getInt(branching_strategy);
+    config_.mutable_branching_strategy().set_from_command_line(
+        static_cast<Config::BranchingStrategy>(branching_strategy));
+    DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --branching-strategy = {}",
+                    config_.branching_strategy());
   }
 }
 

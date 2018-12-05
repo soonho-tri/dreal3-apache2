@@ -90,6 +90,8 @@ class Config {
   /// Returns a mutable OptionValue for `nlopt_maxtime`.
   OptionValue<double>& mutable_nlopt_maxtime();
 
+  /// @}
+
   enum class SatDefaultPhase {
     False = 0,
     True = 1,
@@ -109,11 +111,20 @@ class Config {
   /// Returns a mutable OptionValue for `random_seed`.
   OptionValue<uint32_t>& mutable_random_seed();
 
-  /// @}
+  enum class BranchingStrategy {
+    MaxDiam = 0,  // Default option
+    GradientDescent = 1,
+  };
+
+  /// Returns the branching strategy.
+  BranchingStrategy branching_strategy() const;
+
+  /// Returns a mutable OptionValue for `branching_strategy`.
+  OptionValue<BranchingStrategy>& mutable_branching_strategy();
 
  private:
-  // NOTE: Make sure to match the default values specified here with the ones
-  // specified in dreal/dreal.cc.
+  // NOTE: Make sure to match the default values specified here with the
+  // ones specified in dreal/dreal.cc.
   OptionValue<double> precision_{0.001};
   OptionValue<bool> produce_models_{false};
   OptionValue<bool> use_polytope_{false};
@@ -168,10 +179,16 @@ class Config {
 
   // Seed for Random Number Generator.
   OptionValue<uint32_t> random_seed_{0};
+
+  OptionValue<BranchingStrategy> branching_strategy_{
+      BranchingStrategy::MaxDiam};
 };
 
 std::ostream& operator<<(std::ostream& os,
                          const Config::SatDefaultPhase& sat_default_phase);
+
+std::ostream& operator<<(std::ostream& os,
+                         const Config::BranchingStrategy& branching_strategy);
 
 std::ostream& operator<<(std::ostream& os, const Config& config);
 

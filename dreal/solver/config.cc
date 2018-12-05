@@ -78,6 +78,14 @@ uint32_t Config::random_seed() const { return random_seed_.get(); }
 
 OptionValue<uint32_t>& Config::mutable_random_seed() { return random_seed_; }
 
+Config::BranchingStrategy Config::branching_strategy() const {
+  return branching_strategy_.get();
+}
+
+OptionValue<Config::BranchingStrategy>& Config::mutable_branching_strategy() {
+  return branching_strategy_;
+}
+
 std::ostream& operator<<(std::ostream& os,
                          const Config::SatDefaultPhase& sat_default_phase) {
   switch (sat_default_phase) {
@@ -89,6 +97,17 @@ std::ostream& operator<<(std::ostream& os,
       return os << "Jeroslow-Wang";
     case Config::SatDefaultPhase::RandomInitialPhase:
       return os << "Random Initial Phase";
+  }
+  DREAL_UNREACHABLE();
+}
+
+std::ostream& operator<<(std::ostream& os,
+                         const Config::BranchingStrategy& branching_strategy) {
+  switch (branching_strategy) {
+    case Config::BranchingStrategy::MaxDiam:
+      return os << "MaxDiam";
+    case Config::BranchingStrategy::GradientDescent:
+      return os << "GradientDescent";
   }
   DREAL_UNREACHABLE();
 }
@@ -108,13 +127,14 @@ ostream& operator<<(ostream& os, const Config& config) {
              "nlopt_maxtime = {}, "
              "sat_default_phase = {}, "
              "random_seed = {}"
+             "branching_strategy = {}"
              ")",
              config.precision(), config.produce_models(), config.use_polytope(),
              config.use_polytope_in_forall(), config.use_worklist_fixpoint(),
              config.use_local_optimization(), config.nlopt_ftol_rel(),
              config.nlopt_ftol_abs(), config.nlopt_maxeval(),
              config.nlopt_maxtime(), config.sat_default_phase(),
-             config.random_seed());
+             config.random_seed(), config.branching_strategy());
 }
 
 }  // namespace dreal
