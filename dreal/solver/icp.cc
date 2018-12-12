@@ -1,16 +1,15 @@
 #include "dreal/solver/icp.h"
 
-#include <ostream>
 #include <tuple>
 #include <utility>
 
-#include "dreal/util/assert.h"
+#include "dreal/solver/branch_gradient_descent.h"
+#include "dreal/solver/branch_max_diam.h"
 #include "dreal/util/logging.h"
 #include "dreal/util/stat.h"
 #include "dreal/util/timer.h"
 
 using std::cout;
-using std::make_pair;
 using std::pair;
 using std::tie;
 using std::vector;
@@ -20,70 +19,6 @@ using std::experimental::optional;
 namespace dreal {
 
 namespace {
-/// Finds the dimension with the maximum diameter in a @p box. It only
-/// consider the dimensions enabled in @p bitset.
-///
-/// @returns a pair of (max dimension, variable index).
-pair<double, int> FindMaxDiam(const Box& box, const ibex::BitSet& bitset) {
-  DREAL_ASSERT(!bitset.empty());
-  double max_diam{0.0};
-  int max_diam_idx{-1};
-  for (int i = 0, idx = bitset.min(); i < bitset.size();
-       ++i, idx = bitset.next(idx)) {
-    const Box::Interval& iv_i{box[idx]};
-    const double diam_i{iv_i.diam()};
-    if (diam_i > max_diam && iv_i.is_bisectable()) {
-      max_diam = diam_i;
-      max_diam_idx = idx;
-    }
-  }
-  return make_pair(max_diam, max_diam_idx);
-}
-
-/// Partitions @p box into two sub-boxes and add them into the @p
-/// stack. It traverses only the variables enabled by @p bitset, to find a
-/// branching dimension.
-///
-/// @returns true if it finds a branching dimension and adds boxes to the @p
-/// stack.
-/// @returns false if it fails to find a branching dimension.
-bool Branch(const Box& box, const ibex::BitSet& bitset,
-            const bool stack_left_box_first,
-            vector<pair<Box, int>>* const stack) {
-  DREAL_ASSERT(!bitset.empty());
-
-  // TODO(soonho): For now, we fixated the branching heuristics.
-  // Generalize it later.
-  const pair<double, int> max_diam_and_idx{FindMaxDiam(box, bitset)};
-  const int branching_point{max_diam_and_idx.second};
-  if (branching_point >= 0) {
-    const pair<Box, Box> bisected_boxes{box.bisect(branching_point)};
-    if (stack_left_box_first) {
-      stack->emplace_back(bisected_boxes.first, branching_point);
-      stack->emplace_back(bisected_boxes.second, branching_point);
-      DREAL_LOG_DEBUG(
-          "Icp::CheckSat() Branch {}\n"
-          "on {}\n"
-          "Box1=\n{}\n"
-          "Box2=\n{}",
-          box, box.variable(branching_point), bisected_boxes.first,
-          bisected_boxes.second);
-    } else {
-      stack->emplace_back(bisected_boxes.second, branching_point);
-      stack->emplace_back(bisected_boxes.first, branching_point);
-      DREAL_LOG_DEBUG(
-          "Icp::CheckSat() Branch {}\n"
-          "on {}\n"
-          "Box1=\n{}\n"
-          "Box2=\n{}",
-          box, box.variable(branching_point), bisected_boxes.second,
-          bisected_boxes.first);
-    }
-    return true;
-  }
-  // Fail to find a branching point.
-  return false;
-}
 
 // A class to show statistics information at destruction. We have a
 // static instance in Icp::CheckSat() to keep track of the numbers of
@@ -124,9 +59,11 @@ class IcpStat : public Stat {
   Timer timer_prune_;
   Timer timer_eval_;
 };
+
 }  // namespace
 
 Icp::Icp(const Config& config) : config_{config} {}
+
 // Evaluates @p box using @p formula_evaluators.
 //
 // It evaluates each formula with @p box using interval
@@ -170,14 +107,16 @@ optional<ibex::BitSet> Icp::EvaluateBox(
         continue;
       case FormulaEvaluationResult::Type::UNKNOWN: {
         const Box::Interval& evaluation{result.evaluation()};
-        const double diam = evaluation.diam();
+        const double diam{evaluation.diam()};
         if (diam > config_.precision()) {
           DREAL_LOG_DEBUG(
               "Icp::EvaluateBox() Found an interval >= precision({2}):\n"
               "{0} -> {1}",
               formula_evaluator, evaluation, config_.precision());
           for (const Variable& v : formula_evaluator.variables()) {
-            branching_candidates.add(box.index(v));
+            if (box[v].is_bisectable()) {
+              branching_candidates.add(box.index(v));
+            }
           }
         }
         break;
@@ -215,6 +154,15 @@ bool Icp::CheckSat(const Contractor& contractor,
   TimerGuard branch_timer_guard(&stat.timer_branch_, stat.enabled(),
                                 false /* start_timer */);
 
+  VectorX<Expression> constraints(static_cast<int>(formula_evaluators.size()));
+  if (config_.branching_strategy() ==
+      Config::BranchingStrategy::GradientDescent) {
+    for (size_t i{0}; i < formula_evaluators.size(); ++i) {
+      const FormulaEvaluator& formula_evaluator{formula_evaluators[i]};
+      constraints[i] = ToErrorFunction(formula_evaluator.formula());
+    }
+  }
+
   while (!stack.empty()) {
     DREAL_LOG_DEBUG("Icp::CheckSat() Loop Head");
     // 1. Pop the current box from the stack
@@ -238,9 +186,9 @@ bool Icp::CheckSat(const Contractor& contractor,
     // 3.2. The box is non-empty. Check if the box is still feasible
     // under evaluation and it's small enough.
     eval_timer_guard.resume();
-    const optional<ibex::BitSet> evaluation_result{
+    const optional<ibex::BitSet> branching_candidates{
         EvaluateBox(formula_evaluators, current_box, cs)};
-    if (!evaluation_result) {
+    if (!branching_candidates) {
       // 3.2.1. We detect that the current box is not a feasible solution.
       DREAL_LOG_DEBUG(
           "Icp::CheckSat() Detect that the current box is not feasible by "
@@ -248,7 +196,7 @@ bool Icp::CheckSat(const Contractor& contractor,
           current_box);
       continue;
     }
-    if (evaluation_result->empty()) {
+    if (branching_candidates->empty()) {
       // 3.2.2. delta-SAT : We find a box which is smaller enough.
       DREAL_LOG_DEBUG("Icp::CheckSat() Found a delta-box:\n{}", current_box);
       return true;
@@ -257,20 +205,25 @@ bool Icp::CheckSat(const Contractor& contractor,
 
     // 3.2.3. This box is bigger than delta. Need branching.
     branch_timer_guard.resume();
-    if (!Branch(current_box, *evaluation_result, stack_left_box_first_,
-                &stack)) {
-      DREAL_LOG_DEBUG(
-          "Icp::CheckSat() Found that the current box is not satisfying "
-          "delta-condition but it's not bisectable.:\n{}",
-          current_box);
-      return true;
+    stat.num_branch_++;
+    switch (config_.branching_strategy()) {
+      case Config::BranchingStrategy::MaxDiam:
+        if (BranchMaxDiam(current_box, *branching_candidates,
+                          stack_left_box_first_, &stack)) {
+          return true;
+        }
+        // We alternate between adding-the-left-box-first policy and
+        // adding-the-right-box-first policy.
+        stack_left_box_first_ = !stack_left_box_first_;
+        break;
+      case Config::BranchingStrategy::GradientDescent:
+        if (BranchGradientDescent(constraints, config_, *branching_candidates,
+                                  &current_box, &stack)) {
+          return true;
+        }
+        break;
     }
     branch_timer_guard.pause();
-
-    // We alternate between adding-the-left-box-first policy and
-    // adding-the-right-box-first policy.
-    stack_left_box_first_ = !stack_left_box_first_;
-    stat.num_branch_++;
   }
   DREAL_LOG_DEBUG("Icp::CheckSat() No solution");
   return false;
