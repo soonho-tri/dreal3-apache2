@@ -170,6 +170,32 @@ void MainProgram::AddOptions() {
            1 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
            "Set a seed for the random number generator.", "--random-seed");
+
+  opt_.add("1e-3" /* Default */, false /* Required? */,
+           1 /* Number of args expected. */,
+           0 /* Delimiter if expecting multiple args. */,
+           "[BranchGradientDescent] Alpha (learning rate) (default = 1e-3)\n",
+           "--bgd-alpha");
+
+  opt_.add("10" /* Default */, false /* Required? */,
+           1 /* Number of args expected. */,
+           0 /* Delimiter if expecting multiple args. */,
+           "[BranchGradientDescent] Max Iteration (default = 10)\n",
+           "--bgd-max-iter");
+
+  opt_.add(
+      "1.0" /* Default */, false /* Required? */,
+      1 /* Number of args expected. */,
+      0 /* Delimiter if expecting multiple args. */,
+      "[BranchGradientDescent] Quick Factor for Bold Driver (default = 1.0)\n",
+      "--bgd-quick-factor");
+
+  opt_.add(
+      "1.0" /* Default */, false /* Required? */,
+      1 /* Number of args expected. */,
+      0 /* Delimiter if expecting multiple args. */,
+      "[BranchGradientDescent] Brake Factor for Bold Driver (default = 1.0)\n",
+      "--bgd-brake-factor");
 }
 
 bool MainProgram::ValidateOptions() {
@@ -342,6 +368,42 @@ void MainProgram::ExtractOptions() {
         static_cast<Config::BranchingStrategy>(branching_strategy));
     DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --branching-strategy = {}",
                     config_.branching_strategy());
+  }
+
+  if (config_.branching_strategy() ==
+      Config::BranchingStrategy::GradientDescent) {
+    // GradientDescent specific options:
+    {
+      double bgd_alpha{1e-3};
+      opt_.get("--bgd-alpha")->getDouble(bgd_alpha);
+      config_.branch_gradient_descent_alpha_.set_from_command_line(bgd_alpha);
+      DREAL_LOG_INFO("MainProgram::ExtractOptions() --bgd-alpha = {}",
+                     config_.branch_gradient_descent_alpha_.get());
+    }
+    {
+      int bgd_max_iter{10};
+      opt_.get("--bgd-max-iter")->getInt(bgd_max_iter);
+      config_.branch_gradient_descent_max_iter_.set_from_command_line(
+          bgd_max_iter);
+      DREAL_LOG_INFO("MainProgram::ExtractOptions() --bgd-max-iter = {}",
+                     config_.branch_gradient_descent_max_iter_.get());
+    }
+    {
+      double bgd_quick_factor{1.0};
+      opt_.get("--bgd-quick-factor")->getDouble(bgd_quick_factor);
+      config_.branch_gradient_descent_quick_factor_.set_from_command_line(
+          bgd_quick_factor);
+      DREAL_LOG_INFO("MainProgram::ExtractOptions() --bgd-quick-factor = {}",
+                     config_.branch_gradient_descent_quick_factor_.get());
+    }
+    {
+      double bgd_brake_factor{1.0};
+      opt_.get("--bgd-brake-factor")->getDouble(bgd_brake_factor);
+      config_.branch_gradient_descent_brake_factor_.set_from_command_line(
+          bgd_brake_factor);
+      DREAL_LOG_INFO("MainProgram::ExtractOptions() --bgd-brake-factor = {}",
+                     config_.branch_gradient_descent_brake_factor_.get());
+    }
   }
 }
 

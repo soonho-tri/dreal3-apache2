@@ -14,6 +14,11 @@ class Config {
   Config& operator=(Config&&) = default;
   ~Config() = default;
 
+  OptionValue<double> branch_gradient_descent_alpha_{1e-3};
+  OptionValue<int> branch_gradient_descent_max_iter_{10};
+  OptionValue<double> branch_gradient_descent_quick_factor_{1.0};
+  OptionValue<double> branch_gradient_descent_brake_factor_{1.0};
+
   /// Returns the precision option.
   double precision() const;
 
