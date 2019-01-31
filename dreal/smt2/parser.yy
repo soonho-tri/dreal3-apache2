@@ -284,6 +284,7 @@ term_list:      term { $$ = new std::vector<Term>(1, *$1); delete $1; }
 
 term:           TK_TRUE { $$ = new Term(Formula::True()); }
         |       TK_FALSE { $$ = new Term(Formula::False()); }
+        |       '(' term ')' { $$ = $2; }
         |       '('TK_EQ term term ')' {
             const Term& t1 = *$3;
             const Term& t2 = *$4;
