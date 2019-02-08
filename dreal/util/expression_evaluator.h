@@ -65,4 +65,10 @@ class ExpressionEvaluator {
 std::ostream& operator<<(std::ostream& os,
                          const ExpressionEvaluator& expression_evaluator);
 
+Box::Interval Eval(const Expression& f, const Box& x);
+
+Box::Interval Taylor1Eval(const Expression& f, const Box& x);
+
+Box::Interval Taylor2Eval(const Expression& f, const Box& x);
+
 }  // namespace dreal

@@ -200,4 +200,90 @@ std::ostream& operator<<(std::ostream& os,
   return os << "ExpressionEvaluator(" << expression_evaluator.e_ << ")";
 }
 
+namespace {
+
+// Returns the center point of the input box @p b.
+Box Mid(const Box& b) {
+  Box ret{b};
+  for (int i = 0; i < b.size(); ++i) {
+    ret[i] = ret[i].mid();
+  }
+  return ret;
+}
+
+// Returns the center point of the input box @p b.
+// Box LB(const Box& b) {
+//   Box ret{b};
+//   for (int i = 0; i < b.size(); ++i) {
+//     ret[i] = ret[i].lb();
+//   }
+//   return ret;
+// }
+
+// Box UB(const Box& b) {
+//   Box ret{b};
+//   for (int i = 0; i < b.size(); ++i) {
+//     ret[i] = ret[i].ub();
+//   }
+//   return ret;
+// }
+
+}  // namespace
+
+Box::Interval Eval(const Expression& f, const Box& x) {
+  return ExpressionEvaluator(f)(x);
+}
+
+Box::Interval Taylor1Eval(const Expression& f, const Box& x) {
+  // Taylor₁(f)([x]) = f(x⁰) + ∑ᵢ ([∂f/∂xᵢ]([x]) * ([xᵢ] - x⁰ᵢ))
+
+  // Step 1. Pick a point x0 in [x]. For now, we pick the mid point.
+  const Box x0{Mid(x)};
+
+  // Step 2. Compute f(x⁰).
+  Box::Interval ret{Eval(f, x0)};
+
+  // Step 3. Compute the sum part.
+  for (int i = 0; i < x.size(); ++i) {
+    ret +=
+        ExpressionEvaluator(f.Differentiate(x.variable(i)))(x) * (x[i] - x0[i]);
+  }
+  return ret;
+}
+
+Box::Interval Taylor2Eval(const Expression& f, const Box& x) {
+  // Taylor₂(f)([x]) = f(x⁰) + ∑ᵢ ([∂f/∂xᵢ]([x]) * ([xᵢ] - x⁰ᵢ))
+  //                 + 1/2 ∑ᵢ∑ⱼ ([∂²f/∂xᵢⱼ]([x]) * ([xᵢ] - x⁰ᵢ) * ([xⱼ] - x⁰ⱼ))
+  // Step 1. Pick a point x0 in [x]. For now, we pick the mid point.
+  const Box x0{Mid(x)};
+
+  // Step 2. Compute f(x⁰).
+  Box::Interval ret{Eval(f, x0)};
+
+  // Step 3. Compute the first-order part.
+  for (int i = 0; i < x.size(); ++i) {
+    ret += ExpressionEvaluator(f.Differentiate(x.variable(i)))(x0) *
+           (x[i] - x0[i]);
+  }
+
+  // Step 3. Compute the first-order part.
+  for (int i = 0; i < x.size(); ++i) {
+    for (int j = i; j < x.size(); ++j) {
+      if (i == j) {
+        ret += 0.5 *
+               ExpressionEvaluator(
+                   f.Differentiate(x.variable(i)).Differentiate(x.variable(j)))(
+                   x) *
+               (x[i] - x0[i]) * (x[j] - x0[j]);
+      } else {
+        ret += ExpressionEvaluator(
+                   f.Differentiate(x.variable(i)).Differentiate(x.variable(j)))(
+                   x) *
+               (x[i] - x0[i]) * (x[j] - x0[j]);
+      }
+    }
+  }
+  return ret;
+}
+
 }  // namespace dreal
