@@ -12,6 +12,7 @@
 #include "dreal/contractor/contractor_integer.h"
 #include "dreal/contractor/contractor_join.h"
 #include "dreal/contractor/contractor_seq.h"
+#include "dreal/contractor/contractor_shearing.h"
 #include "dreal/contractor/contractor_worklist_fixpoint.h"
 #include "dreal/util/stat.h"
 
@@ -147,6 +148,13 @@ Contractor make_contractor_worklist_fixpoint(
 Contractor make_contractor_join(vector<Contractor> vec, const Config& config) {
   return Contractor{make_shared<ContractorJoin>(std::move(vec), config)};
 }
+
+Contractor make_contractor_shearing(Formula f, const Box& box,
+                                    const Config& config,
+                                    Contractor::ShearingMethod method, int n,
+                                    double alpha) {
+  return Contractor{make_shared<ContractorShearing>(std::move(f), box, config,
+                                                    method, n, alpha)};
 }
 
 ostream& operator<<(ostream& os, const Contractor& ctc) {
@@ -182,6 +190,9 @@ bool is_forall(const Contractor& contractor) {
 }
 bool is_join(const Contractor& contractor) {
   return contractor.kind() == Contractor::Kind::JOIN;
+}
+bool is_shearing(const Contractor& contractor) {
+  return contractor.kind() == Contractor::Kind::SHEARING;
 }
 
 }  // namespace dreal

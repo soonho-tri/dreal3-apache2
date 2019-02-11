@@ -41,6 +41,14 @@ class Contractor {
     WORKLIST_FIXPOINT,
     FORALL,
     JOIN,
+    SHEARING,
+  };
+
+  /// Shearing Methods.
+  enum class ShearingMethod {
+    Natural,  /// Use natural interval extension.
+    Taylor1,  /// Use first-order Taylor interval extension.
+    Taylor2,  /// Use second-order Taylor interval extension.
   };
 
   explicit Contractor(const Config& config);
@@ -99,6 +107,10 @@ class Contractor {
                                            const Config& config);
   friend Contractor make_contractor_join(std::vector<Contractor> vec,
                                          const Config& config);
+  friend Contractor make_contractor_shearing(Formula f, const Box& box,
+                                             const Config& config,
+                                             ShearingMethod method, int n,
+                                             double alpha);
 
   // Note that the following converter functions are only for
   // low-level operations. To use them, you need to include
@@ -181,6 +193,12 @@ Contractor make_contractor_worklist_fixpoint(
 Contractor make_contractor_join(std::vector<Contractor> vec,
                                 const Config& config);
 
+/// TODO(soonho): Add doc.
+Contractor make_contractor_shearing(Formula f, const Box& box,
+                                    const Config& config,
+                                    Contractor::ShearingMethod method, int n,
+                                    double alpha);
+
 /// Returns a forall contractor.
 ///
 /// @note the implementation is at `dreal/contractor/contractor_forall.h` file.
@@ -217,5 +235,8 @@ bool is_forall(const Contractor& contractor);
 
 /// Returns true if @p contractor is join contractor.
 bool is_join(const Contractor& contractor);
+
+/// Returns true if @p contractor is a shearing contractor.
+bool is_shearing(const Contractor& contractor);
 
 }  // namespace dreal

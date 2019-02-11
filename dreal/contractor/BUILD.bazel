@@ -32,6 +32,8 @@ dreal_cc_library(
         "contractor_join.h",
         "contractor_seq.cc",
         "contractor_seq.h",
+        "contractor_shearing.cc",
+        "contractor_shearing.h",
         "contractor_worklist_fixpoint.cc",
         "contractor_worklist_fixpoint.h",
         "generic_contractor_generator.cc",
@@ -47,6 +49,7 @@ dreal_cc_library(
         "//dreal/solver:config",
         "//dreal/symbolic",
         "//dreal/util:assert",
+        "//dreal/util:evaluator",
         "//dreal/util:exception",
         "//dreal/util:ibex_converter",
         "//dreal/util:logging",
@@ -142,6 +145,13 @@ dreal_cc_googletest(
 
 dreal_cc_googletest(
     name = "contractor_seq_test",
+    deps = [
+        ":contractor",
+    ],
+)
+
+dreal_cc_googletest(
+    name = "contractor_shearing_test",
     deps = [
         ":contractor",
     ],
