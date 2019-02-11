@@ -34,7 +34,6 @@ dreal_cc_library(
         "context.cc",
         "context_impl.cc",
         "context_impl.h",
-        "expression_evaluator.cc",
         "forall_formula_evaluator.cc",
         "forall_formula_evaluator.h",
         "formula_evaluator.cc",
@@ -47,7 +46,6 @@ dreal_cc_library(
     ],
     hdrs = [
         "context.h",
-        "expression_evaluator.h",
         "formula_evaluator.h",
         "icp.h",
         "theory_solver.h",
@@ -70,6 +68,7 @@ dreal_cc_library(
         "//dreal/symbolic",
         "//dreal/util:assert",
         "//dreal/util:box",
+        "//dreal/util:evaluator",
         "//dreal/util:exception",
         "//dreal/util:ibex_converter",
         "//dreal/util:if_then_else_eliminator",
@@ -128,14 +127,6 @@ dreal_cc_library(
 # -----
 dreal_cc_googletest(
     name = "context_test",
-    tags = ["unit"],
-    deps = [
-        ":solver",
-    ],
-)
-
-dreal_cc_googletest(
-    name = "expression_evaluator_test",
     tags = ["unit"],
     deps = [
         ":solver",

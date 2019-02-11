@@ -1,4 +1,4 @@
-#include "dreal/solver/expression_evaluator.h"
+#include "dreal/util/expression_evaluator.h"
 
 #include <iostream>
 #include <sstream>

@@ -1,4 +1,4 @@
-#include "dreal/solver/expression_evaluator.h"
+#include "dreal/util/expression_evaluator.h"
 
 #include <algorithm>  // to suppress cpplint for the use of 'min'
 #include <numeric>

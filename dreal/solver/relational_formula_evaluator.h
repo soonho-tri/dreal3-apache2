@@ -4,11 +4,11 @@
 
 #include "./ibex.h"
 
-#include "dreal/solver/expression_evaluator.h"
 #include "dreal/solver/formula_evaluator.h"
 #include "dreal/solver/formula_evaluator_cell.h"
 #include "dreal/symbolic/symbolic.h"
 #include "dreal/util/box.h"
+#include "dreal/util/expression_evaluator.h"
 
 namespace dreal {
 

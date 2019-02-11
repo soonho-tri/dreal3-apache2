@@ -3,12 +3,12 @@
 #include <cassert>
 #include <utility>
 
-#include "dreal/solver/expression_evaluator.h"
 #include "dreal/solver/forall_formula_evaluator.h"
 #include "dreal/solver/formula_evaluator_cell.h"
 #include "dreal/solver/relational_formula_evaluator.h"
 #include "dreal/util/assert.h"
 #include "dreal/util/exception.h"
+#include "dreal/util/expression_evaluator.h"
 
 namespace dreal {
 

@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "dreal/dr/scanner.h"
-#include "dreal/solver/expression_evaluator.h"
+#include "dreal/util/expression_evaluator.h"
 #include "dreal/util/optional.h"
 
 namespace dreal {

@@ -32,6 +32,23 @@ dreal_cc_library(
 )
 
 dreal_cc_library(
+    name = "evaluator",
+    srcs = [
+        "expression_evaluator.cc",
+    ],
+    hdrs = [
+        "expression_evaluator.h",
+    ],
+    visibility = ["//dreal:__subpackages__"],
+    deps = [
+        ":box",
+        "//dreal/symbolic",
+        "@ibex",
+    ],
+)
+
+
+dreal_cc_library(
     name = "box",
     srcs = [
         "box.cc",
@@ -365,6 +382,14 @@ dreal_cc_googletest(
     tags = ["unit"],
     deps = [
         ":evaluation_visitor",
+    ],
+)
+
+dreal_cc_googletest(
+    name = "expression_evaluator_test",
+    tags = ["unit"],
+    deps = [
+        ":evaluator",
     ],
 )
 
