@@ -88,6 +88,10 @@ class Box {
   /// Returns the max diameter of the box and the associated index .
   std::pair<double, int> MaxDiam() const;
 
+  /// Returns the max diameter of the box and the associated index, only
+  /// considering the @p variables.
+  std::pair<double, int> MaxDiam(const Variables& variables) const;
+
   /// Bisects the box at @p i -th dimension.
   /// @throws std::runtime if @p i -th dimension is not bisectable.
   std::pair<Box, Box> bisect(int i) const;
