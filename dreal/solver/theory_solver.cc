@@ -83,6 +83,7 @@ optional<Contractor> TheorySolver::BuildContractor(
     return make_contractor_integer(box, config_);
   }
   vector<Contractor> ctcs;
+  vector<Contractor> ctcs_for_shearing;
   for (const Formula& f : assertions) {
     switch (FilterAssertion(f, &box)) {
       case FilterAssertionResult::NotFiltered:
@@ -120,6 +121,12 @@ optional<Contractor> TheorySolver::BuildContractor(
       // Cache hit!
       ctcs.emplace_back(it->second);
     }
+    if (config_.use_shearing() && is_relational(f)) {
+      constexpr int N = 100;
+      constexpr double alpha = 0.01;
+      ctcs_for_shearing.push_back(make_contractor_shearing(
+          f, box, config_, Contractor::ShearingMethod::Taylor1, N, alpha));
+    }
   }
   // Add integer contractor.
   ctcs.push_back(make_contractor_integer(box, config_));
@@ -128,12 +135,19 @@ optional<Contractor> TheorySolver::BuildContractor(
     // Add polytope contractor.
     ctcs.push_back(make_contractor_ibex_polytope(assertions, box, config_));
   }
+
+  Contractor ret{config_};
   if (config_.use_worklist_fixpoint()) {
-    return make_contractor_worklist_fixpoint(DefaultTerminationCondition, ctcs,
-                                             config_);
+    ret = make_contractor_worklist_fixpoint(DefaultTerminationCondition, ctcs,
+                                            config_);
   } else {
-    return make_contractor_fixpoint(DefaultTerminationCondition, ctcs, config_);
+    ret = make_contractor_fixpoint(DefaultTerminationCondition, ctcs, config_);
   }
+  if (config_.use_shearing()) {
+    ret = make_contractor_seq(
+        {ret, make_contractor_seq(ctcs_for_shearing, config_)}, config_);
+  }
+  return ret;
 }
 
 vector<FormulaEvaluator> TheorySolver::BuildFormulaEvaluator(
