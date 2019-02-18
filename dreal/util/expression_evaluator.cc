@@ -185,9 +185,75 @@ Box::Interval ExpressionEvaluator::VisitMax(const Expression& e,
              Visit(get_second_argument(e), box));
 }
 
-Box::Interval ExpressionEvaluator::VisitIfThenElse(const Expression&,
-                                                   const Box&) const {
-  throw DREAL_RUNTIME_ERROR("If-then-else expression is not supported yet.");
+Box::Interval ExpressionEvaluator::VisitIfThenElse(const Expression& e,
+                                                   const Box& box) const {
+  const Formula& f{get_conditional_formula(e)};
+  const Expression& e_true{get_then_expression(e)};
+  const Expression& e_false{get_else_expression(e)};
+  if (!is_relational(f)) {
+    throw DREAL_RUNTIME_ERROR(
+        "If-then-else expression with a non-relational condition is not "
+        "supported yet.");
+  }
+
+  const Box::Interval result{
+      Visit(get_lhs_expression(f) - get_rhs_expression(f), box)};
+  switch (extract_relational_operator(f)) {
+    case RelationalOperator::EQ:
+      if (result.lb() == 0.0 && result.ub() == 0.0) {
+        return Visit(e_true, box);
+      }
+      if (result.ub() < 0.0 || result.lb() > 0.0) {
+        return Visit(e_false, box);
+      }
+      break;
+
+    case RelationalOperator::NEQ:
+      if (result.lb() == 0.0 && result.ub() == 0.0) {
+        return Visit(e_false, box);
+      }
+      if (result.ub() < 0.0 || result.lb() > 0.0) {
+        return Visit(e_true, box);
+      }
+      break;
+
+    case RelationalOperator::LT:
+      if (result.ub() < 0.0) {
+        return Visit(e_true, box);
+      }
+      if (result.lb() >= 0.0) {
+        return Visit(e_false, box);
+      }
+      break;
+
+    case RelationalOperator::LEQ:
+      if (result.ub() <= 0.0) {
+        return Visit(e_true, box);
+      }
+      if (result.lb() > 0.0) {
+        return Visit(e_false, box);
+      }
+      break;
+
+    case RelationalOperator::GT:
+      if (result.lb() > 0.0) {
+        return Visit(e_true, box);
+      }
+      if (result.ub() <= 0.0) {
+        return Visit(e_false, box);
+      }
+      break;
+
+    case RelationalOperator::GEQ:
+      if (result.lb() >= 0.0) {
+        return Visit(e_true, box);
+      }
+      if (result.ub() < 0.0) {
+        return Visit(e_false, box);
+      }
+      break;
+  }
+  return Visit(e_true, box) |= Visit(e_false, box);
 }
 
 Box::Interval ExpressionEvaluator::VisitUninterpretedFunction(
