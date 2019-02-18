@@ -1282,9 +1282,9 @@ Expression ExpressionAbs::Substitute(const ExpressionSubstitution& expr_subst,
 
 Expression ExpressionAbs::Differentiate(const Variable& x) const {
   if (GetVariables().include(x)) {
-    ostringstream oss;
-    Display(oss) << "is not differentiable with respect to " << x << ".";
-    throw runtime_error(oss.str());
+    const Expression diff_of_argument{get_argument().Differentiate(x)};
+    return if_then_else(get_argument() >= 0.0, diff_of_argument,
+                        -diff_of_argument);
   } else {
     return Expression::Zero();
   }
@@ -1861,9 +1861,9 @@ Expression ExpressionMin::Substitute(const ExpressionSubstitution& expr_subst,
 
 Expression ExpressionMin::Differentiate(const Variable& x) const {
   if (GetVariables().include(x)) {
-    ostringstream oss;
-    Display(oss) << "is not differentiable with respect to " << x << ".";
-    throw runtime_error(oss.str());
+    return if_then_else(get_first_argument() >= get_second_argument(),
+                        get_second_argument().Differentiate(x),
+                        get_first_argument().Differentiate(x));
   } else {
     return Expression::Zero();
   }
@@ -1908,9 +1908,9 @@ Expression ExpressionMax::Substitute(const ExpressionSubstitution& expr_subst,
 
 Expression ExpressionMax::Differentiate(const Variable& x) const {
   if (GetVariables().include(x)) {
-    ostringstream oss;
-    Display(oss) << "is not differentiable with respect to " << x << ".";
-    throw runtime_error(oss.str());
+    return if_then_else(get_first_argument() >= get_second_argument(),
+                        get_first_argument().Differentiate(x),
+                        get_second_argument().Differentiate(x));
   } else {
     return Expression::Zero();
   }
