@@ -1,13 +1,17 @@
 #include "dreal/util/expression_evaluator.h"
 
 #include <algorithm>  // to suppress cpplint for the use of 'min'
+#include <iostream>
 #include <numeric>
+#include <unordered_map>
 #include <utility>
 
 #include "dreal/util/assert.h"
 #include "dreal/util/exception.h"
 #include "dreal/util/logging.h"
 #include "dreal/util/math.h"
+#include "dreal/util/stat.h"
+#include "dreal/util/timer.h"
 
 namespace dreal {
 
@@ -300,7 +304,66 @@ Box::Interval Eval(const Expression& f, const Box& x) {
   return ExpressionEvaluator(f)(x);
 }
 
+namespace {
+class Taylor1EvalStat : public Stat {
+ public:
+  explicit Taylor1EvalStat(const bool enabled) : Stat{enabled} {};
+  Taylor1EvalStat(const Taylor1EvalStat&) = default;
+  Taylor1EvalStat(Taylor1EvalStat&&) = default;
+  Taylor1EvalStat& operator=(const Taylor1EvalStat&) = default;
+  Taylor1EvalStat& operator=(Taylor1EvalStat&&) = default;
+  ~Taylor1EvalStat() override {
+    if (enabled()) {
+      using fmt::print;
+      print(std::cout, "{:<45} @ {:<20} = {:>15}\n", "Total # of Taylor1Eval",
+            "Pruning level", num_eval_);
+      print(std::cout, "{:<45} @ {:<20} = {:>15}\n",
+            "Total time spent in Taylor1Eval", "Pruning level",
+            timer_.seconds());
+    }
+  }
+
+  int num_eval_{0};
+  Timer timer_;
+};
+
+/// Caches symbolic differentiation results and reuses them.
+class DiffCache {
+ public:
+  explicit DiffCache(const Expression& e) : e_{e} {}
+
+  const Expression& Differentiate(const Variable& var) {
+    const Variable::Id id{var.get_id()};
+    const auto it = cache_.find(id);
+    if (it == cache_.end()) {
+      // Not found.
+      auto ret = cache_.emplace(id, e_.Differentiate(var));
+      return (ret.first)->second;
+    } else {
+      // Found.
+      return it->second;
+    }
+  }
+
+ private:
+  const Expression& e_;
+  std::unordered_map<Variable::Id, Expression> cache_;
+};
+
+}  // namespace
+
 Box::Interval Taylor1Eval(const Expression& f, const Box& x) {
+  static Taylor1EvalStat stat{DREAL_LOG_INFO_ENABLED};
+  stat.num_eval_++;
+  TimerGuard timer_guard(&stat.timer_, stat.enabled(), true /* start_timer */);
+
+  static std::unordered_map<Expression, DiffCache> cache;
+  auto it = cache.find(f);
+  if (it == cache.end()) {
+    it = cache.emplace(f, DiffCache{f}).first;
+  }
+  DiffCache& diff_cache = it->second;
+
   // Taylor₁(f)([x]) = f(x⁰) + ∑ᵢ ([∂f/∂xᵢ]([x]) * ([xᵢ] - x⁰ᵢ))
 
   // Step 1. Pick a point x0 in [x]. For now, we pick the mid point.
@@ -311,8 +374,8 @@ Box::Interval Taylor1Eval(const Expression& f, const Box& x) {
 
   // Step 3. Compute the sum part.
   for (int i = 0; i < x.size(); ++i) {
-    ret +=
-        ExpressionEvaluator(f.Differentiate(x.variable(i)))(x) * (x[i] - x0[i]);
+    ret += ExpressionEvaluator(diff_cache.Differentiate(x.variable(i)))(x) *
+           (x[i] - x0[i]);
   }
   return ret;
 }

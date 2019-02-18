@@ -42,6 +42,8 @@ dreal_cc_library(
     visibility = ["//dreal:__subpackages__"],
     deps = [
         ":box",
+        ":stat",
+        ":timer",
         "//dreal/symbolic",
         "@ibex",
     ],
