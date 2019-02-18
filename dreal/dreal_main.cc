@@ -103,6 +103,11 @@ void MainProgram::AddOptions() {
   opt_.add("false" /* Default */, false /* Required? */,
            0 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
+           "Use shearing contractor.\n", "--shearing");
+
+  opt_.add("false" /* Default */, false /* Required? */,
+           0 /* Number of args expected. */,
+           0 /* Delimiter if expecting multiple args. */,
            "Use worklist fixpoint algorithm in ICP.\n", "--worklist-fixpoint");
 
   opt_.add("false" /* Default */, false /* Required? */,
@@ -251,6 +256,13 @@ void MainProgram::ExtractOptions() {
     config_.mutable_use_polytope_in_forall().set_from_command_line(true);
     DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --forall-polytope = {}",
                     config_.use_polytope_in_forall());
+  }
+
+  // --shearing
+  if (opt_.isSet("--shearing")) {
+    config_.mutable_use_shearing().set_from_command_line(true);
+    DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --shearing = {}",
+                    config_.use_shearing());
   }
 
   // --worklist-fixpoint

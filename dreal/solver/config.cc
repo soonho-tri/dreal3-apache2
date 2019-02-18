@@ -25,6 +25,9 @@ OptionValue<bool>& Config::mutable_use_polytope_in_forall() {
   return use_polytope_in_forall_;
 }
 
+bool Config::use_shearing() const { return use_shearing_.get(); }
+OptionValue<bool>& Config::mutable_use_shearing() { return use_shearing_; }
+
 bool Config::use_worklist_fixpoint() const {
   return use_worklist_fixpoint_.get();
 }
@@ -100,6 +103,7 @@ ostream& operator<<(ostream& os, const Config& config) {
              "produce_model = {}, "
              "use_polytope = {}, "
              "use_polytope_in_forall = {}, "
+             "use_shearing = {}, "
              "use_worklist_fixpoint = {}, "
              "use_local_optimization = {}, "
              "nlopt_ftol_rel = {}, "
@@ -110,11 +114,11 @@ ostream& operator<<(ostream& os, const Config& config) {
              "random_seed = {}"
              ")",
              config.precision(), config.produce_models(), config.use_polytope(),
-             config.use_polytope_in_forall(), config.use_worklist_fixpoint(),
-             config.use_local_optimization(), config.nlopt_ftol_rel(),
-             config.nlopt_ftol_abs(), config.nlopt_maxeval(),
-             config.nlopt_maxtime(), config.sat_default_phase(),
-             config.random_seed());
+             config.use_polytope_in_forall(), config.use_shearing(),
+             config.use_worklist_fixpoint(), config.use_local_optimization(),
+             config.nlopt_ftol_rel(), config.nlopt_ftol_abs(),
+             config.nlopt_maxeval(), config.nlopt_maxtime(),
+             config.sat_default_phase(), config.random_seed());
 }
 
 }  // namespace dreal

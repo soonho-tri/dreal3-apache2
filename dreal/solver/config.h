@@ -38,6 +38,12 @@ class Config {
   /// Returns a mutable OptionValue for 'use_polytope_in_forall'.
   OptionValue<bool>& mutable_use_polytope_in_forall();
 
+  /// Returns whether it uses shearing contractors.
+  bool use_shearing() const;
+
+  /// Returns a mutable OptionValue for 'use_shearing'.
+  OptionValue<bool>& mutable_use_shearing();
+
   /// Returns whether it uses worklist-fixpoint algorithm.
   bool use_worklist_fixpoint() const;
 
@@ -118,6 +124,7 @@ class Config {
   OptionValue<bool> produce_models_{false};
   OptionValue<bool> use_polytope_{false};
   OptionValue<bool> use_polytope_in_forall_{false};
+  OptionValue<bool> use_shearing_{false};
   OptionValue<bool> use_worklist_fixpoint_{false};
   OptionValue<bool> use_local_optimization_{false};
   OptionValue<bool> stack_left_box_first_{false};
