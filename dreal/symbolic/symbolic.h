@@ -125,6 +125,11 @@ enum class RelationalOperator {
 /// Negates @p op.
 RelationalOperator operator!(RelationalOperator op);
 
+/// Extracts the relational operator of @p f.
+///
+/// @throws if @p f is a non-relational formula.
+RelationalOperator extract_relational_operator(const Formula& f);
+
 /// Outputs @p op to @p os.
 std::ostream& operator<<(std::ostream& os, RelationalOperator op);
 

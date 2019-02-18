@@ -485,6 +485,32 @@ ostream& operator<<(ostream& os, const RelationalOperator op) {
   DREAL_UNREACHABLE();
 }
 
+RelationalOperator extract_relational_operator(const Formula& f) {
+  if (!is_relational(f)) {
+    throw std::runtime_error(
+        "extract_relational_operator: The input argument is non-relational.");
+  }
+  if (is_equal_to(f)) {
+    return RelationalOperator::EQ;
+  }
+  if (is_not_equal_to(f)) {
+    return RelationalOperator::NEQ;
+  }
+  if (is_less_than(f)) {
+    return RelationalOperator::LT;
+  }
+  if (is_less_than_or_equal_to(f)) {
+    return RelationalOperator::LEQ;
+  }
+  if (is_greater_than(f)) {
+    return RelationalOperator::GT;
+  }
+  if (is_greater_than_or_equal_to(f)) {
+    return RelationalOperator::GEQ;
+  }
+  DREAL_UNREACHABLE();
+}
+
 namespace {
 
 class ToErrorFunctionVisitor {
