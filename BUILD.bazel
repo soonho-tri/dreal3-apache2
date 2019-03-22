@@ -54,6 +54,7 @@ cc_library(
         "@fmt",
         "@ibex",
         "@spdlog",
+        "@eigen3",
     ],
 )
 
