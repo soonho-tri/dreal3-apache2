@@ -306,10 +306,10 @@ term:           TK_TRUE { $$ = new Term(Formula::True()); }
             }
             delete $3; delete $4;
         }
-        |       '('TK_LT term term ')' { $$ = new Term($3->expression() < $4->expression()); delete $3; delete $4; }
-        |       '('TK_LTE term term ')' { $$ = new Term($3->expression() <= $4->expression()); delete $3; delete $4; }
-        |       '('TK_GT term term ')' { $$ = new Term($3->expression() > $4->expression()); delete $3; delete $4; }
-        |       '('TK_GTE term term ')' { $$ = new Term($3->expression() >= $4->expression()); delete $3; delete $4; }
+        |       '('TK_LT term term ')' { $$ = new Term($3->expression().Expand() < $4->expression().Expand()); delete $3; delete $4; }
+        |       '('TK_LTE term term ')' { $$ = new Term($3->expression().Expand() <= $4->expression().Expand()); delete $3; delete $4; }
+        |       '('TK_GT term term ')' { $$ = new Term($3->expression().Expand() > $4->expression().Expand()); delete $3; delete $4; }
+        |       '('TK_GTE term term ')' { $$ = new Term($3->expression().Expand() >= $4->expression().Expand()); delete $3; delete $4; }
         |       '('TK_AND term_list ')' {
             Formula f = Formula::True();
             for (const Term& t : *$3) {
@@ -374,13 +374,14 @@ term:           TK_TRUE { $$ = new Term(Formula::True()); }
             const Box::Interval i{StringToInterval(*$1)};
             const double parsed{std::stod(*$1)};
             delete $1;
-            if (i.diam() == 0) {
-                // point => floating-point constant expression.
-                $$ = new Term{i.mid()};
-            } else {
-                // interval => real constant expression.
-                $$ = new Term{real_constant(i.lb(), i.ub(), i.lb() == parsed)};
-            }
+	    $$ = new Term{parsed};
+            // if (i.diam() == 0) {
+            //     // point => floating-point constant expression.
+            //     $$ = new Term{i.mid()};
+            // } else {
+            //     // interval => real constant expression.
+            //     $$ = new Term{real_constant(i.lb(), i.ub(), i.lb() == parsed)};
+            // }
         }
         |       HEXFLOAT { $$ = new Term{$1}; }
         |       INT { $$ = new Term{convert_int64_to_double($1)}; }

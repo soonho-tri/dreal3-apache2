@@ -87,6 +87,7 @@ Context::Impl::Impl(Config config)
 }
 
 void Context::Impl::Assert(const Formula& f) {
+  std::cerr << "Assert: " << f << std::endl;
   if (is_true(f)) {
     return;
   }
