@@ -54,6 +54,19 @@ dreal_cc_library(
 )
 
 dreal_cc_library(
+    name = "evaluation_visitor",
+    hdrs = [
+        "evaluation_visitor.h",
+    ],
+    visibility = ["//dreal:__subpackages__"],
+    deps = [
+        ":box",
+        ":eigen",
+        "//dreal/symbolic",
+    ],
+)
+
+dreal_cc_library(
     name = "interval",
     srcs = [
         "interval.cc",
@@ -344,6 +357,14 @@ dreal_cc_googletest(
     tags = ["unit"],
     deps = [
         ":box",
+    ],
+)
+
+dreal_cc_googletest(
+    name = "evaluation_visitor_test",
+    tags = ["unit"],
+    deps = [
+        ":evaluation_visitor",
     ],
 )
 
