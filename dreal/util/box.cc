@@ -143,6 +143,22 @@ pair<double, int> Box::MaxDiam() const {
   return make_pair(max_diam, idx);
 }
 
+pair<double, int> Box::MaxDiam(const Variables& variables) const {
+  double max_diam{0.0};
+  int idx{-1};
+  for (size_t i{0}; i < variables_->size(); ++i) {
+    if (!variables.include((*variables_)[i])) {
+      continue;
+    }
+    const double diam_i{values_[i].diam()};
+    if (diam_i > max_diam && values_[i].is_bisectable()) {
+      max_diam = diam_i;
+      idx = i;
+    }
+  }
+  return make_pair(max_diam, idx);
+}
+
 pair<Box, Box> Box::bisect(const int i) const {
   const Variable& var{(*idx_to_var_)[i]};
   if (!values_[i].is_bisectable()) {

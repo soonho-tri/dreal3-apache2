@@ -233,7 +233,9 @@ PYBIND11_MODULE(_dreal_py, m) {
            })
       .def("variable", &Box::variable)
       .def("index", &Box::index)
-      .def("MaxDiam", &Box::MaxDiam)
+      .def("MaxDiam", [](const Box& self) { return self.MaxDiam(); })
+      .def("MaxDiam", [](const Box& self,
+                         const Variables& vars) { return self.MaxDiam(vars); })
       .def("bisect",
            [](const Box& self, const int i) { return self.bisect(i); })
       .def("bisect", [](const Box& self,
