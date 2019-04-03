@@ -3,6 +3,13 @@ load("//third_party/com_github_robotlocomotion_drake:tools/workspace/pkg_config.
 
 def dreal_workspace():
     pkg_config_repository(
+        name = "eigen3",  # MPL2
+        modname = "eigen3",
+        pkg_config_paths = [
+            "/usr/local/opt/eigen/share/pkgconfig",
+        ],
+    )
+    pkg_config_repository(
         name = "ibex",  # LGPL3
         modname = "ibex",
         pkg_config_paths = [
