@@ -74,6 +74,16 @@ dreal_cc_googletest(
     deps = [
         ":symbolic",
         ":symbolic_test_util",
+        "//dreal/util:eigen",
+    ],
+)
+
+dreal_cc_googletest(
+    name = "symbolic_expression_matrix_test",
+    tags = ["unit"],
+    deps = [
+        ":symbolic",
+        ":symbolic_test_util",
     ],
 )
 
