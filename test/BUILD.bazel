@@ -30,6 +30,18 @@ dreal_cc_googletest(
 )
 
 cc_test(
+    name = "cpp_taskflow_test",
+    size = "small",
+    srcs = [
+        "cpp_taskflow_test.cc",
+    ],
+    tags = ["extlib"],
+    deps = [
+        "@cpp_taskflow",
+    ],
+)
+
+cc_test(
     name = "ibex_test",
     size = "small",
     srcs = ["ibex_test.cc"],

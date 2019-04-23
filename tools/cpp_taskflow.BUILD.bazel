@@ -1,0 +1,15 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "cpp_taskflow",
+    hdrs = glob([
+        "taskflow/**",
+    ]),
+    includes = ["taskflow"],
+    linkopts = select({
+        "@dreal//tools:linux": ["-pthread"],
+        "@//conditions:default": [],
+    }),
+)

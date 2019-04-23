@@ -70,3 +70,11 @@ def dreal_workspace():
         sha256 = "f090380ecd6b63a3c2b2f0bdb27260de2ccb22486ef7f47cc1175b70c6e4e388",
         build_file = str(Label("//tools:cds.BUILD.bazel")),
     )
+
+    github_archive(
+        name = "cpp_taskflow",  # MIT
+        repository = "cpp-taskflow/cpp-taskflow",
+        commit = "b52eaf076271e125a89e3fdb574c14d485f8c89a",  # 20190423
+        sha256 = "c02dd893e836bb56683c7c0f22bcd2c0007dce42bb42e8b9083cf242a35acb39",
+        build_file = str(Label("//tools:cpp_taskflow.BUILD.bazel")),
+    )
