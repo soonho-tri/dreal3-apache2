@@ -30,6 +30,39 @@ load(
     "C_COMPILE_ACTION_NAME",
 )
 
+# From https://gist.github.com/oquenchil/7e2c2bd761aa1341b458cc25608da50c
+def get_compile_flags(dep):
+    """
+    Builds compilation flags. This replaces the old API dep.cc.compile_flags
+    This is not the command line that C++ rules will use. For that the toolchain API should be
+    used (feature configuration and variables).
+    Args:
+      dep: Target
+    Returns:
+      A list of strings
+    """
+    options = []
+    compilation_context = dep[CcInfo].compilation_context
+    for define in compilation_context.defines.to_list():
+        options.append("-D{}".format(define))
+
+    for system_include in compilation_context.system_includes.to_list():
+        if len(system_include) == 0:
+            system_include = "."
+        options.append("-isystem {}".format(system_include))
+
+    for include in compilation_context.includes.to_list():
+        if len(include) == 0:
+            include = "."
+        options.append("-I {}".format(include))
+
+    for quote_include in compilation_context.quote_includes.to_list():
+        if len(quote_include) == 0:
+            quote_include = "."
+        options.append("-iquote {}".format(quote_include))
+
+    return options
+
 CompilationAspect = provider()
 
 _cpp_extensions = [
