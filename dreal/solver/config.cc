@@ -39,6 +39,11 @@ OptionValue<bool>& Config::mutable_use_local_optimization() {
   return use_local_optimization_;
 }
 
+bool Config::use_parallel_icp() const { return use_parallel_icp_.get(); }
+OptionValue<bool>& Config::mutable_use_parallel_icp() {
+  return use_parallel_icp_;
+}
+
 bool Config::stack_left_box_first() const {
   return stack_left_box_first_.get();
 }
@@ -102,6 +107,7 @@ ostream& operator<<(ostream& os, const Config& config) {
              "use_polytope_in_forall = {}, "
              "use_worklist_fixpoint = {}, "
              "use_local_optimization = {}, "
+             "use_parallel_icp = {}, "
              "nlopt_ftol_rel = {}, "
              "nlopt_ftol_abs = {}, "
              "nlopt_maxeval = {}, "
@@ -111,10 +117,10 @@ ostream& operator<<(ostream& os, const Config& config) {
              ")",
              config.precision(), config.produce_models(), config.use_polytope(),
              config.use_polytope_in_forall(), config.use_worklist_fixpoint(),
-             config.use_local_optimization(), config.nlopt_ftol_rel(),
-             config.nlopt_ftol_abs(), config.nlopt_maxeval(),
-             config.nlopt_maxtime(), config.sat_default_phase(),
-             config.random_seed());
+             config.use_local_optimization(), config.use_parallel_icp(),
+             config.nlopt_ftol_rel(), config.nlopt_ftol_abs(),
+             config.nlopt_maxeval(), config.nlopt_maxtime(),
+             config.sat_default_phase(), config.random_seed());
 }
 
 }  // namespace dreal
