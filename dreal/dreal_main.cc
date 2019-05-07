@@ -111,6 +111,11 @@ void MainProgram::AddOptions() {
            "Use local optimization algorithm for exist-forall problems.\n",
            "--local-optimization");
 
+  opt_.add("false" /* Default */, false /* Required? */,
+           0 /* Number of args expected. */,
+           0 /* Delimiter if expecting multiple args. */,
+           "Use parallel ICP algorithm.\n", "--parallel-icp");
+
   opt_.add("1e-6" /* Default */, false /* Required? */,
            1 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
@@ -265,6 +270,13 @@ void MainProgram::ExtractOptions() {
     config_.mutable_use_local_optimization().set_from_command_line(true);
     DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --local-optimization = {}",
                     config_.use_local_optimization());
+  }
+
+  // --parallel-icp
+  if (opt_.isSet("--parallel-icp")) {
+    config_.mutable_use_parallel_icp().set_from_command_line(true);
+    DREAL_LOG_DEBUG("MainProgram::ExtractOptions() --parallel-icp = {}",
+                    config_.use_parallel_icp());
   }
 
   // --nlopt-ftol-rel
