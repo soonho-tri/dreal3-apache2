@@ -1,9 +1,15 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <ostream>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
 #include "./ibex.h"
+
+#include <cuckoohash_map.hh>
 
 #include "dreal/contractor/contractor.h"
 #include "dreal/contractor/contractor_cell.h"
@@ -33,7 +39,7 @@ class ContractorIbexFwdbwd : public ContractorCell {
   /// Deleted move assign operator.
   ContractorIbexFwdbwd& operator=(ContractorIbexFwdbwd&&) = delete;
 
-  ~ContractorIbexFwdbwd() override = default;
+  ~ContractorIbexFwdbwd();
 
   void Prune(ContractorStatus* cs) const override;
 
@@ -44,14 +50,18 @@ class ContractorIbexFwdbwd : public ContractorCell {
   std::ostream& display(std::ostream& os) const override;
 
  private:
-  const Formula f_;
-  IbexConverter ibex_converter_;
-  std::unique_ptr<const ibex::ExprCtr> expr_ctr_;
-  std::unique_ptr<const ibex::NumConstraint> num_ctr_;
-  std::unique_ptr<ibex::CtcFwdBwd> ctc_;
+  ibex::CtcFwdBwd* GetCtc(const Box& box) const;
 
-  // Temporary storage to store an old interval vector.
-  mutable Box::IntervalVector old_iv_;
+  const Formula f_;
+
+  mutable std::mutex m_;
+
+  mutable std::vector<IbexConverter*> ibex_converters_;
+
+  mutable std::unordered_map<std::thread::id, const ibex::ExprCtr*>
+      expr_ctr_map_;
+
+  mutable cuckoohash_map<std::thread::id, ibex::CtcFwdBwd*> ctc_map_;
 };
 
 }  // namespace dreal
