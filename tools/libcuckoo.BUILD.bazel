@@ -1,0 +1,15 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libcuckoo",
+    hdrs = glob([
+        "libcuckoo/*.hh",
+    ]),
+    includes=["libcuckoo"],
+    linkopts = select({
+        "@dreal//tools:linux": ["-pthread"],
+        "@//conditions:default": [],
+    }),
+)

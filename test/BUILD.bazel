@@ -29,6 +29,18 @@ dreal_cc_googletest(
     ],
 )
 
+dreal_cc_googletest(
+    name = "libcuckoo_test",
+    size = "small",
+    srcs = [
+        "libcuckoo_test.cc",
+    ],
+    tags = ["extlib"],
+    deps = [
+        "@libcuckoo",
+    ],
+)
+
 cc_test(
     name = "ibex_test",
     size = "small",
