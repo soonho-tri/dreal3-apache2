@@ -82,6 +82,7 @@ size_t Formula::get_hash() const {
 const Variables& Formula::GetFreeVariables() const {
   assert(ptr_ != nullptr);
   if (!free_variables_) {
+    std::lock_guard<std::mutex> guard(free_variables_lock_);
     free_variables_ = std::make_shared<Variables>(ptr_->GetFreeVariables());
   }
   return *free_variables_;

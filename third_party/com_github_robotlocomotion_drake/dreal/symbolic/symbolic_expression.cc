@@ -180,6 +180,7 @@ Expression Expression::NaN() {
 const Variables& Expression::GetVariables() const {
   assert(ptr_ != nullptr);
   if (!variables_) {
+    std::lock_guard<std::mutex> guard(variables_lock_);
     variables_ = std::make_shared<Variables>(ptr_->GetVariables());
   }
   return *variables_;

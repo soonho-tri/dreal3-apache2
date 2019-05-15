@@ -5,6 +5,7 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <ostream>
 #include <string>
 #include <type_traits>
@@ -495,6 +496,7 @@ class Expression {
 
   // Storage to cache the result of GetVariables().
   mutable std::shared_ptr<Variables> variables_;
+  mutable std::mutex variables_lock_;
 };
 
 Expression operator+(const Expression& lhs, const Expression& rhs);
