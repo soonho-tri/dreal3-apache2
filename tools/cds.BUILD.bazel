@@ -10,7 +10,7 @@ cc_library(
     srcs = glob([
         "src/*.cpp",
     ]),
-    includes=["."],
+    includes = ["."],
     linkopts = select({
         "@dreal//tools:linux": ["-pthread"],
         "@//conditions:default": [],

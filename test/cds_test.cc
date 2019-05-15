@@ -22,7 +22,7 @@ struct StackTraits : public cds::container::treiber_stack::traits {
 
 using IntStack = cds::container::TreiberStack<cds::gc::HP, int, StackTraits>;
 
-constexpr int kPerStack = 100;
+constexpr int kPerStack = 10000;
 constexpr int kNumThread = 10;
 
 void push_to_stack(IntStack* const stack) {
