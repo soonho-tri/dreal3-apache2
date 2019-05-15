@@ -70,3 +70,11 @@ def dreal_workspace():
         sha256 = "f090380ecd6b63a3c2b2f0bdb27260de2ccb22486ef7f47cc1175b70c6e4e388",
         build_file = str(Label("//tools:cds.BUILD.bazel")),
     )
+
+    github_archive(
+        name = "libcuckoo",  # BSL 1.0
+        repository = "efficient/libcuckoo",
+        commit = "f3138045810b2c2e9b59dbede296b4a5194af4f9",  # 20181224
+        sha256 = "07180d7cfccd0f0eff3e07e6bc5836e4e3a75060e84ddc2d8d90f443a75304fa",
+        build_file = str(Label("//tools:libcuckoo.BUILD.bazel")),
+    )
