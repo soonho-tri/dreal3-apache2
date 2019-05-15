@@ -29,6 +29,18 @@ dreal_cc_googletest(
     ],
 )
 
+dreal_cc_googletest(
+    name = "tbb_test",
+    size = "small",
+    srcs = [
+        "tbb_test.cc",
+    ],
+    tags = ["extlib"],
+    deps = [
+        "@tbb",
+    ],
+)
+
 cc_test(
     name = "ibex_test",
     size = "small",

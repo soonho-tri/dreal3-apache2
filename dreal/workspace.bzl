@@ -70,3 +70,11 @@ def dreal_workspace():
         sha256 = "f090380ecd6b63a3c2b2f0bdb27260de2ccb22486ef7f47cc1175b70c6e4e388",
         build_file = str(Label("//tools:cds.BUILD.bazel")),
     )
+
+    github_archive(
+        name = "tbb",  # Apache 2.0
+        repository = "intel/tbb",
+        commit = "2019_U6",
+        sha256 = "2ba197b3964fce8a84429dd15b75eba7434cb89afc54f86d5ee6f726fdbe97fd",
+        build_file = str(Label("//tools:tbb.BUILD.bazel")),
+    )
