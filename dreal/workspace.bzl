@@ -78,3 +78,11 @@ def dreal_workspace():
         sha256 = "07180d7cfccd0f0eff3e07e6bc5836e4e3a75060e84ddc2d8d90f443a75304fa",
         build_file = str(Label("//tools:libcuckoo.BUILD.bazel")),
     )
+
+    github_archive(
+        name = "tbb",  # Apache 2.0
+        repository = "intel/tbb",
+        commit = "2019_U6",
+        sha256 = "2ba197b3964fce8a84429dd15b75eba7434cb89afc54f86d5ee6f726fdbe97fd",
+        build_file = str(Label("//tools:tbb.BUILD.bazel")),
+    )
