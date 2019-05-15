@@ -629,6 +629,14 @@ PYBIND11_MODULE(_dreal_py, m) {
                     [](Config& self, const bool nlopt_maxtime) {
                       self.mutable_nlopt_maxtime() = nlopt_maxtime;
                     })
+      .def_property("use_parallel_icp", &Config::use_parallel_icp,
+                    [](Config& self, const bool use_parallel_icp) {
+                      self.mutable_use_parallel_icp() = use_parallel_icp;
+                    })
+      .def_property("number_of_jobs", &Config::number_of_jobs,
+                    [](Config& self, const int number_of_jobs) {
+                      self.mutable_number_of_jobs() = number_of_jobs;
+                    })
       .def("__str__",
            [](const Config& self) { return fmt::format("{}", self); });
 
