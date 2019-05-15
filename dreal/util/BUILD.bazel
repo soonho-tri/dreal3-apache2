@@ -97,6 +97,14 @@ dreal_cc_library(
 )
 
 dreal_cc_library(
+    name = "joining_thread",
+    hdrs = [
+        "joining_thread.h",
+    ],
+    visibility = ["//dreal:__subpackages__"],
+)
+
+dreal_cc_library(
     name = "optional",
     hdrs = [
         "optional.h",
