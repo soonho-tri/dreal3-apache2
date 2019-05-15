@@ -298,9 +298,9 @@ dreal_cc_library(
 )
 
 dreal_cc_library(
-    name = "round_mode_guard",
+    name = "rounding_mode_guard",
     hdrs = [
-        "round_mode_guard.h",
+        "rounding_mode_guard.h",
     ],
     visibility = ["//dreal:__subpackages__"],
 )
