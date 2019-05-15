@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 #include <ostream>
 #include <set>
 #include <string>
@@ -274,6 +275,7 @@ class Formula {
 
   // Storage to cache the result of GetFreevariables().
   mutable std::shared_ptr<Variables> free_variables_;
+  mutable std::mutex free_variables_lock_;
 };
 
 /** Returns a formula @p f, universally quantified by variables @p vars. */
