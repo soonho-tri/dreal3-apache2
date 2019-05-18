@@ -49,10 +49,10 @@ class TimerHolder {
   TimerHolder() = default;
   ~TimerHolder() {
     DREAL_LOG_CRITICAL(
-        "Per Thread Pruning Time at Contractor: ID = {} : {} sec, # contract "
+        "Per Thread Pruning Time at Contractor: {} sec, # contract "
         "= "
         "{}",
-        sched_getcpu(), timer_.seconds(), num_contract_);
+        timer_.seconds(), num_contract_);
   }
   void pause() { timer_.pause(); }
   void resume() {
