@@ -17,6 +17,7 @@ import sys
 
 local_optimization = False
 precision = 0.0001
+set_log_level(LogLevel.ERROR)
 
 
 def make_config():
@@ -25,6 +26,7 @@ def make_config():
     config = Config()
     config.precision = precision
     config.use_local_optimization = local_optimization
+    config.number_of_jobs = 12
     return config
 
 

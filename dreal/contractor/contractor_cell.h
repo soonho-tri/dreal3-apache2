@@ -19,6 +19,7 @@ class ContractorInteger;
 class ContractorSeq;
 class ContractorIbexFwdbwd;
 class ContractorIbexPolytope;
+class ContractorIbexPolytopeMt;
 class ContractorFixpoint;
 class ContractorWorklistFixpoint;
 class ContractorJoin;
@@ -62,6 +63,12 @@ class ContractorCell {
   /// Returns config.
   const Config& config() const;
 
+  /// Returns true if this contractor includes a forall contractor.
+  bool include_forall() const { return include_forall_; }
+
+  /// Sets include_forall true.
+  void set_include_forall() { include_forall_ = true; }
+
   /// Performs pruning on @p cs.
   virtual void Prune(ContractorStatus* cs) const = 0;
 
@@ -72,6 +79,7 @@ class ContractorCell {
   const Contractor::Kind kind_;
   ibex::BitSet input_;
   const Config& config_;
+  bool include_forall_{false};
 };
 
 /// Returns max(c₁.input().max(), ..., cₙ.input().max()).

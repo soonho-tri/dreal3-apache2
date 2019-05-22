@@ -9,6 +9,7 @@
 #include "dreal/solver/context.h"
 #include "dreal/solver/filter_assertion.h"
 #include "dreal/solver/formula_evaluator.h"
+#include "dreal/solver/icp_parallel.h"
 #include "dreal/solver/icp_seq.h"
 #include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
@@ -24,7 +25,11 @@ using std::vector;
 
 TheorySolver::TheorySolver(const Config& config)
     : config_{config}, icp_{nullptr} {
-  icp_ = make_unique<IcpSeq>(config);
+  if (config_.number_of_jobs() > 1) {
+    icp_ = make_unique<IcpParallel>(config);
+  } else {
+    icp_ = make_unique<IcpSeq>(config);
+  }
 }
 
 namespace {
@@ -63,8 +68,8 @@ class TheorySolverStat : public Stat {
   explicit TheorySolverStat(const bool enabled) : Stat{enabled} {}
   TheorySolverStat(const TheorySolverStat&) = default;
   TheorySolverStat(TheorySolverStat&&) = default;
-  TheorySolverStat& operator=(const TheorySolverStat&) = default;
-  TheorySolverStat& operator=(TheorySolverStat&&) = default;
+  TheorySolverStat& operator=(const TheorySolverStat&) = delete;
+  TheorySolverStat& operator=(TheorySolverStat&&) = delete;
   ~TheorySolverStat() override {
     if (enabled()) {
       using fmt::print;
