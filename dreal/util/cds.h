@@ -20,6 +20,11 @@ class CdsScopeGuard {
       cds::threading::Manager::attachThread();
     }
   }
+  CdsScopeGuard(const CdsScopeGuard&) = delete;
+  CdsScopeGuard(CdsScopeGuard&&) = delete;
+  CdsScopeGuard& operator=(const CdsScopeGuard&) = delete;
+  CdsScopeGuard& operator=(CdsScopeGuard&&) = delete;
+
   ~CdsScopeGuard() {
     if (use_) {
       cds::threading::Manager::detachThread();
@@ -40,6 +45,11 @@ class CdsInit {
       cds::threading::Manager::attachThread();
     }
   }
+  CdsInit(const CdsInit&) = delete;
+  CdsInit(CdsInit&&) = delete;
+  CdsInit& operator=(const CdsInit&) = delete;
+  CdsInit& operator=(CdsInit&&) = delete;
+
   ~CdsInit() {
     // Terminate libcds
     cds::Terminate();
