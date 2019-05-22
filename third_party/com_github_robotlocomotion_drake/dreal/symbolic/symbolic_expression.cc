@@ -84,12 +84,8 @@ Expression::Expression(const Expression& e) : ptr_{e.ptr_} {
 }
 
 Expression& Expression::operator=(const Expression& e) {
-  assert(e.ptr_ != nullptr);
-  e.ptr_->increase_rc();
-  if (ptr_) {
-    ptr_->decrease_rc();
-  }
-  ptr_ = e.ptr_;
+  Expression tmp{e};
+  *this = std::move(tmp);
   return *this;
 }
 

@@ -44,25 +44,6 @@ class ContractorIbexFwdbwdStat : public Stat {
   int num_pruning_{0};
 };
 
-class TimerHolder {
- public:
-  TimerHolder() = default;
-  ~TimerHolder() {
-    DREAL_LOG_CRITICAL(
-        "Per Thread Pruning Time at Contractor: {} sec, # contract "
-        "= "
-        "{}",
-        timer_.seconds(), num_contract_);
-  }
-  void pause() { timer_.pause(); }
-  void resume() {
-    timer_.resume();
-    ++num_contract_;
-  }
-  Timer timer_;
-  int num_contract_{0};
-};
-
 }  // namespace
 
 //---------------------------------------
@@ -77,7 +58,7 @@ ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
   // Build num_ctr and ctc_.
   expr_ctr_.reset(ibex_converter_.Convert(f_));
   if (expr_ctr_) {
-    auto const num_ctr =
+    auto* const num_ctr =
         new ibex::NumConstraint{ibex_converter_.variables(), *expr_ctr_};
     ctc_ = make_unique<ibex::CtcFwdBwd>(*num_ctr);
     // Build input.
@@ -95,7 +76,6 @@ ContractorIbexFwdbwd::~ContractorIbexFwdbwd() {
 }
 
 void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
-  // thread_local TimerHolder timer;
   thread_local ContractorIbexFwdbwdStat stat{DREAL_LOG_INFO_ENABLED};
 
   if (ctc_) {

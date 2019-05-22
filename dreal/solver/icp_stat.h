@@ -17,6 +17,7 @@ class IcpStat : public Stat {
   IcpStat& operator=(IcpStat&&) = delete;
   ~IcpStat() override;
 
+  // TODO(soonho): FIXME
   int num_branch_{0};
   int num_prune_{0};
   Timer timer_branch_;

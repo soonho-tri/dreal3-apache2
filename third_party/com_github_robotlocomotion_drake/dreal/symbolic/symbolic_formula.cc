@@ -35,12 +35,8 @@ Formula::Formula(const Formula& f) : ptr_{f.ptr_} {
 }
 
 Formula& Formula::operator=(const Formula& f) {
-  assert(f.ptr_ != nullptr);
-  f.ptr_->increase_rc();
-  if (ptr_) {
-    ptr_->decrease_rc();
-  }
-  ptr_ = f.ptr_;
+  Formula tmp{f};
+  *this = std::move(tmp);
   return *this;
 }
 

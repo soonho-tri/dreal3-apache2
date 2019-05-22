@@ -63,7 +63,9 @@ class FormulaCell {
   virtual std::ostream& Display(std::ostream& os) const = 0;
 
   /** Returns the reference count of this cell. */
-  unsigned use_count() const { return atomic_load_explicit(&rc_, std::memory_order_acquire); }
+  unsigned use_count() const {
+    return atomic_load_explicit(&rc_, std::memory_order_acquire);
+  }
 
  protected:
   /** Construct FormulaCell of kind @p k with @p hash. */
@@ -79,9 +81,11 @@ class FormulaCell {
 
   // Reference counter.
   mutable std::atomic<unsigned> rc_{0};
-  void increase_rc() const { atomic_fetch_add_explicit(&rc_, 1u, std::memory_order_relaxed); }
+  void increase_rc() const {
+    atomic_fetch_add_explicit(&rc_, 1U, std::memory_order_relaxed);
+  }
   void decrease_rc() const {
-    if (atomic_fetch_sub_explicit(&rc_, 1u, std::memory_order_acq_rel) == 1u) {
+    if (atomic_fetch_sub_explicit(&rc_, 1U, std::memory_order_acq_rel) == 1U) {
       delete this;
     }
   }

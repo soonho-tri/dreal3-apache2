@@ -19,8 +19,12 @@ class JoiningThread {
     }
   }
 
-  JoiningThread(JoiningThread&) = delete;
-  JoiningThread& operator=(JoiningThread const&) = delete;
+  JoiningThread(const JoiningThread&) = delete;
+  JoiningThread& operator=(const JoiningThread&) = delete;
+  JoiningThread& operator=(JoiningThread&& jt) noexcept {
+    t_ = std::move(jt.t_);
+    return *this;
+  }
 
  private:
   std::thread t_;
