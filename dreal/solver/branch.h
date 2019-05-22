@@ -21,7 +21,6 @@ std::pair<double, int> FindMaxDiam(const Box& box, const ibex::BitSet& bitset);
 /// stack.
 /// @returns false if it fails to find a branching dimension.
 bool Branch(const Box& box, const ibex::BitSet& bitset,
-            const bool stack_left_box_first,
-            std::vector<std::pair<Box, int>>* const stack);
+            bool stack_left_box_first, std::vector<std::pair<Box, int>>* stack);
 
 }  // namespace dreal
