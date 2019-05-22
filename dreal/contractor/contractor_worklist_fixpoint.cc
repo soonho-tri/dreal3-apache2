@@ -40,6 +40,9 @@ ContractorWorklistFixpoint::ContractorWorklistFixpoint(
   ibex::BitSet& input{mutable_input()};
   for (const Contractor& ctc : contractors_) {
     input |= ctc.input();
+    if (ctc.include_forall()) {
+      set_include_forall();
+    }
   }
 
   // Setup input_to_contractors_.
