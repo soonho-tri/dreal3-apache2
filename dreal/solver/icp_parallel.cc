@@ -23,8 +23,6 @@ namespace dreal {
 
 namespace {
 
-atomic<int> num_prune{0};
-
 // Returns -1 if it detects that the interval vector is non-bisectable.
 int FindMaxDiamIdx(const Box::IntervalVector& iv) {
   double max_diam{0.0};
@@ -80,8 +78,6 @@ bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
                     Stack<Box::IntervalVector>* const global_stack,
                     atomic<int>* const number_of_boxes,
                     atomic<int>* const global_stack_size) {
-  // TODO(soonho): For now, we fixated the branching heuristics.
-  // Generalize it later.
   const pair<double, int> max_diam_and_idx{FindMaxDiam(*box, bitset)};
   const int branching_point{max_diam_and_idx.second};
   if (branching_point >= 0) {
@@ -97,22 +93,15 @@ bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
     }
     const Box::IntervalVector& iv1{*iv1_ptr};
     const Box::IntervalVector& iv2{*iv2_ptr};
-    // DREAL_LOG_DEBUG(
-    //     "Branch {}\n"
-    //     "on {}\n"
-    //     "Box1=\n{}\n"
-    //     "Box2=\n{}",
-    //     *box, box->variable(branching_point), iv1, iv2);
+
     number_of_boxes->fetch_add(1, std::memory_order_relaxed);
+    // TODO(soonho): FIXME. Decision #1: when to add to the global stack or a
+    // local_stack?
     if (global_stack_size->load(std::memory_order_acquire) < number_of_jobs) {
       global_stack_size->fetch_add(1, std::memory_order_relaxed);
       global_stack->push(iv1);
-      // std::cerr << "G+ ";
     } else {
       local_stack->push_back(iv1);
-      // // std::cerr << "L+ ";
-      // global_stack_size->fetch_add(1, std::memory_order_relaxed);
-      // global_stack->push(iv1);
     }
     box->mutable_interval_vector() = iv2;
     return true;
@@ -127,11 +116,7 @@ void Worker(const Contractor& contractor, const Config& config,
             Stack<Box::IntervalVector>* const global_stack,
             ContractorStatus* const cs, atomic<int>* const found_delta_sat,
             atomic<int>* const number_of_boxes,
-            atomic<int>* const global_stack_size, IcpStat* const stat,
-            atomic_flag* filling) {
-  Timer tt;
-  // DREAL_LOG_CRITICAL("Thread #{} : on CPU {}", id, sched_getcpu());
-
+            atomic<int>* const global_stack_size, IcpStat* const stat) {
   thread_local vector<Box::IntervalVector> local_stack;
   local_stack.clear();
   local_stack.reserve(100);
@@ -147,18 +132,11 @@ void Worker(const Contractor& contractor, const Config& config,
 
   bool need_to_pop{true};
 
-  int cnt = 0;
-
   while ((*found_delta_sat == -1) &&
          (!local_stack.empty() ||
           number_of_boxes->load(std::memory_order_acquire) > 0)) {
-    ++cnt;
-    // DREAL_LOG_DEBUG("IcpParallel::Worker() Loop Head {}, {}",
-    // *found_delta_sat,
-    //                 *number_of_boxes);
-
-    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-    // when we build dReal python package.
+  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+  // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -170,63 +148,49 @@ void Worker(const Contractor& contractor, const Config& config,
     //  A) First check the local stack.
     //  B) If the local stack is empty, get a box from the global stack.
     /// C) If there are nothing, spin.
-
     if (need_to_pop) {
       if (!local_stack.empty()) {
         current_iv = local_stack.back();
         local_stack.pop_back();
-        // std::cerr << "L+ ";
       } else if (!global_stack->pop(current_iv)) {
         // DREAL_LOG_DEBUG("IcpParallel::Worker() NO BOX.");
-        std::cerr << "N" << id << " ";
-        // std::this_thread::yield();
         continue;
       } else {
-        // std::cerr << "G- ";
         global_stack_size->fetch_sub(1, std::memory_order_acq_rel);
       }
     }
-
-    // std::cerr << "(" << id << ")";
     need_to_pop = true;
 
-    // Spill (Load Balancing): Move local => global
+    // Spill (Load Balancing): Move an item from the local stack to the global
+    // stack.
     while (!local_stack.empty() && global_stack->empty()) {
       global_stack_size->fetch_add(1, std::memory_order_relaxed);
       global_stack->push(local_stack.back());
       local_stack.pop_back();
-      std::cerr << "S" << id << " ";
     }
 
-    // Populating Global...
-    if (global_stack->empty() && !filling->test_and_set()) {
-      std::cerr << "F" << id;
-      // std::cerr << "F" << id << "_" << *(global_stack_size) << " ";
+    // Populating the global stack if there are not enough boxes on it.
+    if (global_stack->empty()) {
       bool first_one = true;
       for (const Box::IntervalVector& iv :
            FillUp(current_box.interval_vector(), config.number_of_jobs())) {
         if (first_one) {
+          // We handle the first iv immediately.
           current_iv = iv;
           first_one = false;
         } else {
+          // The rest of the boxes goes to the global stack.
           number_of_boxes->fetch_add(1, std::memory_order_relaxed);
           global_stack_size->fetch_add(1, std::memory_order_relaxed);
           global_stack->push(iv);
         }
       }
-      filling->clear();
     }
 
     // 2. Prune the current box.
 
     // DREAL_LOG_TRACE("IcpParallel::Worker() Current Box:\n{}", current_box);
-    tt.resume();
     contractor.Prune(cs);
-    num_prune.fetch_add(1U, std::memory_order_relaxed);
-    if (num_prune % 1000 == 0) {
-      std::cerr << "*";
-    }
-    tt.pause();
 
     // stat->increase_prune();
     // DREAL_LOG_TRACE(
@@ -281,9 +245,6 @@ void Worker(const Contractor& contractor, const Config& config,
     stack_left_box_first = !stack_left_box_first;
     // stat->increase_branch();
   }
-  // DREAL_LOG_CRITICAL(
-  //     "Per Thread Pruning Time at ICP Parallel: ID = {} : {} sec",
-  //     sched_getcpu(), tt.seconds());
 }
 
 }  // namespace
@@ -296,9 +257,6 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
   DREAL_LOG_DEBUG("IcpParallel::CheckSat()");
 
   atomic<int> found_delta_sat{-1};
-  atomic<int> number_of_boxes{0};
-  atomic<int> global_stack_size{0};
-  atomic_flag filling = ATOMIC_FLAG_INIT;
 
   static CdsInit cds_init{
       true /* main thread is using lock-free containers. */};
@@ -307,77 +265,51 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
 
   Stack<Box::IntervalVector> global_stack(number_of_jobs);
 
-  const int initial_boxes = 1; /* number_of_jobs */
-
-  for (const auto& iv : FillUp(cs->box().interval_vector(), initial_boxes)) {
+  const int number_of_initial_boxes = number_of_jobs;
+  for (const auto& iv :
+       FillUp(cs->box().interval_vector(), number_of_initial_boxes)) {
     global_stack.push(iv);
-    global_stack_size.fetch_add(1, std::memory_order_relaxed);
-    number_of_boxes.fetch_add(1, std::memory_order_relaxed);
   }
-  DREAL_LOG_CRITICAL("ICP PARALLEL: # of boxes in total        : {}",
-                     number_of_boxes);
-  DREAL_LOG_CRITICAL("ICP PARALLEL: # of boxes in global stack : {}",
-                     global_stack_size);
-  DREAL_LOG_CRITICAL("ICP PARALLEL: # of jobs : {}", number_of_jobs);
+  atomic<int> number_of_boxes{number_of_initial_boxes};
+  atomic<int> global_stack_size{number_of_initial_boxes};
 
   static IcpStat stat{DREAL_LOG_INFO_ENABLED};
 
   vector<ContractorStatus> status_vector;
   status_vector.reserve(number_of_jobs);
 
-  if (!contractor.include_forall()) {
-    // Parallel Case
-    std::cerr << "Parallel Case... \n";
-    {
-      vector<JoiningThread> workers;
-      workers.reserve(number_of_jobs);
-      DREAL_LOG_INFO("Main Thread: # of hardware concurrency = {}",
-                     number_of_jobs);
-      for (int i = 0; i < number_of_jobs; ++i) {
-        status_vector.push_back(*cs);
-      }
-      for (int i = 0; i < number_of_jobs - 1; ++i) {
-        status_vector.push_back(*cs);
-        workers.emplace_back(Worker, contractor, config(), formula_evaluators,
-                             i, false /* not main thread */, &global_stack,
-                             &status_vector[i], &found_delta_sat,
-                             &number_of_boxes, &global_stack_size, &stat,
-                             &filling);
-      }
+  {
+    vector<JoiningThread> workers;
+    workers.reserve(number_of_jobs);
+    DREAL_LOG_INFO("Main Thread: # of hardware concurrency = {}",
+                   number_of_jobs);
+    for (int i = 0; i < number_of_jobs; ++i) {
+      status_vector.push_back(*cs);
+    }
+    for (int i = 0; i < number_of_jobs - 1; ++i) {
+      status_vector.push_back(*cs);
+      workers.emplace_back(Worker, contractor, config(), formula_evaluators, i,
+                           false /* not main thread */, &global_stack,
+                           &status_vector[i], &found_delta_sat,
+                           &number_of_boxes, &global_stack_size, &stat);
     }
     Worker(contractor, config(), formula_evaluators, number_of_jobs - 1,
            true /* main thread */, &global_stack,
            &status_vector[number_of_jobs - 1], &found_delta_sat,
-           &number_of_boxes, &global_stack_size, &stat, &filling);
-    DREAL_LOG_CRITICAL("Num Prune = {}", num_prune);
+           &number_of_boxes, &global_stack_size, &stat);
+  }
 
-    // Post-processing: Join all the contractor statuses.
-    for (const auto& cs_i : status_vector) {
-      cs->InplaceJoin(cs_i);
-    }
-    std::cerr << "PAR Done\n";
+  // Post-processing: Join all the contractor statuses.
+  for (const auto& cs_i : status_vector) {
+    cs->InplaceJoin(cs_i);
+  }
 
-    if (found_delta_sat >= 0) {
-      cs->mutable_box() = status_vector[found_delta_sat].box();
-      return true;
-    } else {
-      cs->mutable_box().set_empty();
-      return false;
-    }
-
+  if (found_delta_sat >= 0) {
+    cs->mutable_box() = status_vector[found_delta_sat].box();
+    return true;
   } else {
-    // Sequential Case
-    std::cerr << "Sequential Case... \n";
-    Worker(contractor, config(), formula_evaluators, 0, true /* main thread */,
-           &global_stack, cs, &found_delta_sat, &number_of_boxes,
-           &global_stack_size, &stat, &filling);
-    std::cerr << "SEQ Done\n";
-    if (found_delta_sat >= 0) {
-      return true;
-    } else {
-      cs->mutable_box().set_empty();
-      return false;
-    }
+    cs->mutable_box().set_empty();
+    return false;
   }
 }
 }  // namespace dreal
