@@ -14,6 +14,7 @@
 
 #include "dreal/api/api.h"
 #include "dreal/symbolic/symbolic.h"
+#include "dreal/util/logging.h"
 
 namespace dreal {
 
@@ -83,6 +84,8 @@ void check_eps_barrier_type_1(double const eps, double const gamma,
   Config config;
   config.mutable_precision() = delta;
   config.mutable_use_local_optimization() = true;
+  config.mutable_number_of_jobs() = 4;
+  log()->set_level(spdlog::level::err);
 
   // We take `init` to be the set of values for which B(x)≤−ε hold. Therefore,
   // there is no need to prove that.
@@ -473,20 +476,20 @@ void print_example_name(string const& name) {
 }
 
 void DoMain() {
-  print_example_name("T.R. Van der Pol");
-  reversed_time_van_der_pol running_example{};
-  running_example.epsilon_stability();
-  running_example.type1_barrier();
+  // print_example_name("T.R. Van der Pol");
+  // reversed_time_van_der_pol running_example{};
+  // running_example.epsilon_stability();
+  // running_example.type1_barrier();
 
-  print_example_name("Norm. Pend.");
-  normalized_pendulum pend{};
-  pend.epsilon_stability();
-  pend.type1_barrier();
+  // print_example_name("Norm. Pend.");
+  // normalized_pendulum pend{};
+  // pend.epsilon_stability();
+  // pend.type1_barrier();
 
-  print_example_name("Moore-Greitzer");
-  moore_jet_engine jet{};
-  jet.epsilon_stability();
-  jet.type1_barrier();
+  // print_example_name("Moore-Greitzer");
+  // moore_jet_engine jet{};
+  // jet.epsilon_stability();
+  // jet.type1_barrier();
 
   print_example_name("Powertrain");
   powertrain ptc{};
