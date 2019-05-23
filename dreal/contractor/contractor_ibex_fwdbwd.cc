@@ -72,10 +72,10 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
 
   if (ctc_) {
     Box::IntervalVector& iv{cs->mutable_box().mutable_interval_vector()};
-    const Box::IntervalVector old_iv{iv};  // TODO(soonho): FIXME
     DREAL_LOG_TRACE("ContractorIbexFwdbwd::Prune");
     DREAL_LOG_TRACE("CTC = {}", ctc_->ctr);
     DREAL_LOG_TRACE("F = {}", f_);
+    old_iv_ = iv;
     ctc_->contract(iv);  // TODO(soonho): FIXME
     stat.num_pruning_++;
     bool changed{false};
@@ -86,7 +86,7 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
     } else {
       for (int i{0}, idx = ctc_->output->min(); i < ctc_->output->size();
            ++i, idx = ctc_->output->next(idx)) {
-        if (old_iv[idx] != iv[idx]) {
+        if (old_iv_[idx] != iv[idx]) {
           cs->mutable_output().add(idx);
           changed = true;
         }
@@ -97,7 +97,7 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
       cs->AddUsedConstraint(f_);
       if (DREAL_LOG_TRACE_ENABLED) {
         ostringstream oss;
-        DisplayDiff(oss, cs->box().variables(), old_iv,
+        DisplayDiff(oss, cs->box().variables(), old_iv_,
                     cs->box().interval_vector());
         DREAL_LOG_TRACE("Changed\n{}", oss.str());
       }
