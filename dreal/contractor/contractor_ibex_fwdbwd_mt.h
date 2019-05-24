@@ -55,6 +55,9 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
 
   mutable cuckoohash_map<std::thread::id, std::unique_ptr<ContractorIbexFwdbwd>>
       ctc_map_;
+
+  std::vector<int> ctcs_ready_;
+  std::vector<std::unique_ptr<ContractorIbexFwdbwd>> ctcs_;
 };
 
 }  // namespace dreal
