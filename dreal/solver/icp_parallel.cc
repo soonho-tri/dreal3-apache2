@@ -245,16 +245,12 @@ void Worker(const Contractor& contractor, const Config& config,
     // stat->increase_branch();
   }
 }
-
 }  // namespace
 
 IcpParallel::IcpParallel(const Config& config)
-    : Icp{config},
-      ready_to_start_{config.number_of_jobs(), 0},
-      need_to_kill_{config.number_of_jobs(), 0} {
+    : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs())} {
   std::cerr << "IcpParallel is created.\n";
   status_vector_.reserve(config.number_of_jobs());
-  workers_.reserve(config.number_of_jobs());
 }
 
 bool IcpParallel::CheckSat(const Contractor& contractor,
@@ -283,23 +279,18 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
     status_vector_.push_back(*cs);
   }
 
-  workers_.clear();
   for (int i = 0; i < number_of_jobs - 1; ++i) {
-    ready_to_start_[i] = 1;
     status_vector_.push_back(*cs);
-    workers_.emplace_back(Worker, contractor, config(), formula_evaluators, i,
-                          false /* not main thread */, &global_stack,
-                          &status_vector_[i], &found_delta_sat,
-                          &number_of_boxes, &global_stack_size, &stat,
-                          &ready_to_start_[i], &cv_, &lock_);
+    pool_.enqueue(Worker, contractor, config(), formula_evaluators, i,
+                  false /* not main thread */, &global_stack,
+                  &status_vector_[i], &found_delta_sat, &number_of_boxes,
+                  &global_stack_size, &stat);
   }
-  ready_to_start_[number_of_jobs - 1] = 1;
-  Worker(contractor, config(), formula_evaluators, number_of_jobs - 1,
-         true /* main thread */, &global_stack,
-         &status_vector_[number_of_jobs - 1], &found_delta_sat,
-         &number_of_boxes, &global_stack_size, &stat,
-         &ready_to_start_[number_of_jobs - 1], &cv_, &lock_);
-  workers_.clear();
+
+  const int last_index{number_of_jobs - 1};
+  Worker(contractor, config(), formula_evaluators, last_index,
+         true /* main thread */, &global_stack, &status_vector_[last_index],
+         &found_delta_sat, &number_of_boxes, &global_stack_size, &stat);
 
   // Post-processing: Join all the contractor statuses.
   for (const auto& cs_i : status_vector_) {

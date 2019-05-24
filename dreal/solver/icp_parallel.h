@@ -1,15 +1,14 @@
 #pragma once
 
-#include <condition_variable>
 #include <vector>
+
+#include "ThreadPool/ThreadPool.h"
 
 #include "dreal/contractor/contractor.h"
 #include "dreal/contractor/contractor_status.h"
 #include "dreal/solver/config.h"
 #include "dreal/solver/formula_evaluator.h"
 #include "dreal/solver/icp.h"
-
-#include "dreal/util/joining_thread.h"
 
 namespace dreal {
 
@@ -24,13 +23,8 @@ class IcpParallel : public Icp {
                 ContractorStatus* cs) override;
 
  private:
+  ThreadPool pool_;
   std::vector<ContractorStatus> status_vector_;
-  std::vector<JoiningThread> workers_;
-  std::vector<int> ready_to_start_;
-  std::vector<int> need_to_kill_;
-
-  std::condition_variable cv_;
-  std::mutex lock_;
 };
 
 }  // namespace dreal
