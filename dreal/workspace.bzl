@@ -78,3 +78,11 @@ def dreal_workspace():
         sha256 = "07180d7cfccd0f0eff3e07e6bc5836e4e3a75060e84ddc2d8d90f443a75304fa",
         build_file = str(Label("//tools:libcuckoo.BUILD.bazel")),
     )
+
+    github_archive(
+        name = "thread_pool",  # Zlib
+        repository = "progschj/ThreadPool",
+        commit = "9a42ec1329f259a5f4881a291db1dcb8f2ad9040",  # 20181224
+        sha256 = "954e0ecdac1aa0da1e0fa78577ff0d352e53094df43762fbc1884f76a7e1dcd2",
+        build_file = str(Label("//tools:thread_pool.BUILD.bazel")),
+    )
