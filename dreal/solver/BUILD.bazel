@@ -94,6 +94,7 @@ dreal_cc_library(
         "//dreal/smt2:__pkg__",
     ],
     deps = [
+        "@thread_pool",
         ":branch",
         ":config",
         ":filter_assertion",
