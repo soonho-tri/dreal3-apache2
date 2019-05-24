@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include "dreal/util/stat.h"
 #include "dreal/util/timer.h"
 
@@ -17,8 +19,9 @@ class IcpStat : public Stat {
   IcpStat& operator=(IcpStat&&) = delete;
   ~IcpStat() override;
 
-  int num_branch_{0};
-  int num_prune_{0};
+  std::atomic<int> num_branch_{0};
+  std::atomic<int> num_prune_{0};
+
   Timer timer_branch_;
   Timer timer_prune_;
   Timer timer_eval_;
