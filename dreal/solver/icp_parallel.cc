@@ -191,7 +191,9 @@ void Worker(const Contractor& contractor, const Config& config,
     // DREAL_LOG_TRACE("IcpParallel::Worker() Current Box:\n{}", current_box);
     contractor.Prune(cs);
 
-    // stat->increase_prune();
+    if (DREAL_LOG_INFO_ENABLED) {
+      stat->num_prune_.fetch_add(1, std::memory_order_relaxed);
+    }
     // DREAL_LOG_TRACE(
     //     "IcpParallel::Worker() After pruning, the current box =\n{}",
     //     current_box);
@@ -242,14 +244,15 @@ void Worker(const Contractor& contractor, const Config& config,
     // We alternate between adding-the-left-box-first policy and
     // adding-the-right-box-first policy.
     stack_left_box_first = !stack_left_box_first;
-    // stat->increase_branch();
+    if (DREAL_LOG_INFO_ENABLED) {
+      stat->num_branch_.fetch_add(1, std::memory_order_relaxed);
+    }
   }
 }
 }  // namespace
 
 IcpParallel::IcpParallel(const Config& config)
-    : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs())} {
-  std::cerr << "IcpParallel is created.\n";
+    : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs() - 1)} {
   status_vector_.reserve(config.number_of_jobs());
 }
 
