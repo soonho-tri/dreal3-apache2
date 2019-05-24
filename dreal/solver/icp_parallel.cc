@@ -11,7 +11,6 @@
 #include "dreal/util/assert.h"
 #include "dreal/util/cds.h"
 #include "dreal/util/interrupt.h"
-#include "dreal/util/joining_thread.h"
 #include "dreal/util/logging.h"
 
 using std::atomic;
@@ -135,8 +134,8 @@ void Worker(const Contractor& contractor, const Config& config,
   while ((*found_delta_sat == -1) &&
          (!local_stack.empty() ||
           number_of_boxes->load(std::memory_order_acquire) > 0)) {
-  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-  // when we build dReal python package.
+    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+    // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -249,23 +248,27 @@ void Worker(const Contractor& contractor, const Config& config,
 
 }  // namespace
 
-IcpParallel::IcpParallel(const Config& config) : Icp{config} {}
+IcpParallel::IcpParallel(const Config& config)
+    : Icp{config},
+      ready_to_start_{config.number_of_jobs(), 0},
+      need_to_kill_{config.number_of_jobs(), 0} {
+  std::cerr << "IcpParallel is created.\n";
+  status_vector_.reserve(config.number_of_jobs());
+  workers_.reserve(config.number_of_jobs());
+}
 
 bool IcpParallel::CheckSat(const Contractor& contractor,
                            const vector<FormulaEvaluator>& formula_evaluators,
                            ContractorStatus* const cs) {
-  DREAL_LOG_DEBUG("IcpParallel::CheckSat()");
-
+  DREAL_LOG_CRITICAL("IcpParallel::CheckSat()");
   atomic<int> found_delta_sat{-1};
-
   static CdsInit cds_init{
       true /* main thread is using lock-free containers. */};
-
+  Stack<Box::IntervalVector> global_stack;
   const int number_of_jobs = config().number_of_jobs();
-
-  Stack<Box::IntervalVector> global_stack(number_of_jobs);
-
   const int number_of_initial_boxes = number_of_jobs;
+
+  // Set up the global stack.
   for (const auto& iv :
        FillUp(cs->box().interval_vector(), number_of_initial_boxes)) {
     global_stack.push(iv);
@@ -275,37 +278,36 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
 
   static IcpStat stat{DREAL_LOG_INFO_ENABLED};
 
-  vector<ContractorStatus> status_vector;
-  status_vector.reserve(number_of_jobs);
-
-  {
-    vector<JoiningThread> workers;
-    workers.reserve(number_of_jobs);
-    DREAL_LOG_INFO("Main Thread: # of hardware concurrency = {}",
-                   number_of_jobs);
-    for (int i = 0; i < number_of_jobs; ++i) {
-      status_vector.push_back(*cs);
-    }
-    for (int i = 0; i < number_of_jobs - 1; ++i) {
-      status_vector.push_back(*cs);
-      workers.emplace_back(Worker, contractor, config(), formula_evaluators, i,
-                           false /* not main thread */, &global_stack,
-                           &status_vector[i], &found_delta_sat,
-                           &number_of_boxes, &global_stack_size, &stat);
-    }
-    Worker(contractor, config(), formula_evaluators, number_of_jobs - 1,
-           true /* main thread */, &global_stack,
-           &status_vector[number_of_jobs - 1], &found_delta_sat,
-           &number_of_boxes, &global_stack_size, &stat);
+  status_vector_.clear();
+  for (int i = 0; i < number_of_jobs; ++i) {
+    status_vector_.push_back(*cs);
   }
 
+  workers_.clear();
+  for (int i = 0; i < number_of_jobs - 1; ++i) {
+    ready_to_start_[i] = 1;
+    status_vector_.push_back(*cs);
+    workers_.emplace_back(Worker, contractor, config(), formula_evaluators, i,
+                          false /* not main thread */, &global_stack,
+                          &status_vector_[i], &found_delta_sat,
+                          &number_of_boxes, &global_stack_size, &stat,
+                          &ready_to_start_[i], &cv_, &lock_);
+  }
+  ready_to_start_[number_of_jobs - 1] = 1;
+  Worker(contractor, config(), formula_evaluators, number_of_jobs - 1,
+         true /* main thread */, &global_stack,
+         &status_vector_[number_of_jobs - 1], &found_delta_sat,
+         &number_of_boxes, &global_stack_size, &stat,
+         &ready_to_start_[number_of_jobs - 1], &cv_, &lock_);
+  workers_.clear();
+
   // Post-processing: Join all the contractor statuses.
-  for (const auto& cs_i : status_vector) {
+  for (const auto& cs_i : status_vector_) {
     cs->InplaceJoin(cs_i);
   }
 
   if (found_delta_sat >= 0) {
-    cs->mutable_box() = status_vector[found_delta_sat].box();
+    cs->mutable_box() = status_vector_[found_delta_sat].box();
     return true;
   } else {
     cs->mutable_box().set_empty();
