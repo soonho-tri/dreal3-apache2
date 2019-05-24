@@ -6,8 +6,6 @@
 #include <thread>
 #include <vector>
 
-#include <cuckoohash_map.hh>
-
 #include "dreal/contractor/contractor_cell.h"
 #include "dreal/contractor/contractor_ibex_polytope.h"
 #include "dreal/contractor/contractor_status.h"
@@ -47,9 +45,9 @@ class ContractorIbexPolytopeMt : public ContractorCell {
   const std::vector<Formula> formulas_;
   const Config config_;
 
-  mutable cuckoohash_map<std::thread::id,
-                         std::unique_ptr<ContractorIbexPolytope>>
-      ctc_map_;
+  // ctcs_ready_[i] is 1 if i-th contractor has been looked up before.
+  mutable std::vector<int> ctcs_ready_;
+  mutable std::vector<std::unique_ptr<ContractorIbexPolytope>> ctcs_;
 };
 
 }  // namespace dreal

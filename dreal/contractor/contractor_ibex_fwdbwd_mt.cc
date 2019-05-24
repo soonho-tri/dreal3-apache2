@@ -14,7 +14,8 @@ namespace dreal {
 namespace {
 std::size_t get_thread_id() noexcept {
   static std::atomic<std::size_t> id{0};
-  return id++;
+  thread_local const std::size_t tid = id++;
+  return tid;
 }
 }  // namespace
 
@@ -25,27 +26,27 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
       f_{std::move(f)},
       config_{config},
       ctcs_ready_(config.number_of_jobs(), 0),
-      ctcs_(config.number_of_jobs(), nullptr) {
+      ctcs_(config.number_of_jobs()) {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
   GetCtcOrCreate(box);
 }
 
 ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
     const Box& box) const {
-  thread_local const std::size_t id{get_thread_id()};
-  if (ctcs_ready_[id]) {
-    return ctcs_[id];
+  auto ctc = GetCtc();
+  if (ctc) {
+    return ctc;
   }
-
-  ctcs_[id] = new ContractorIbexFwdbwd{f_, box, config_};
+  thread_local const std::size_t id{get_thread_id()};
+  ctcs_[id].reset(new ContractorIbexFwdbwd{f_, box, config_});
   ctcs_ready_[id] = 1;
-  return ctcs_[id];
+  return ctcs_[id].get();
 }
 
 ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtc() const {
   thread_local const std::size_t id{get_thread_id()};
   if (ctcs_ready_[id]) {
-    return ctcs_[id];
+    return ctcs_[id].get();
   }
   return nullptr;
 }
@@ -55,10 +56,6 @@ void ContractorIbexFwdbwdMt::Prune(ContractorStatus* cs) const {
   if (ctc) {
     return ctc->Prune(cs);
   }
-}
-
-Box::Interval ContractorIbexFwdbwdMt::Evaluate(const Box& box) const {
-  return GetCtc()->Evaluate(box);
 }
 
 ostream& ContractorIbexFwdbwdMt::display(ostream& os) const {

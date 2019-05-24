@@ -9,33 +9,37 @@ using std::ostream;
 using std::vector;
 
 namespace dreal {
+namespace {
+std::size_t get_thread_id() noexcept {
+  static std::atomic<std::size_t> id{0};
+  thread_local const std::size_t tid{++id};
+  return tid;
+}
 
+}  // namespace
 ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
                                                    const Box& box,
                                                    const Config& config)
     : ContractorCell{Contractor::Kind::IBEX_POLYTOPE,
                      ibex::BitSet::empty(box.size()), config},
       formulas_{std::move(formulas)},
-      config_{config} {
+      config_{config},
+      ctcs_ready_(config.number_of_jobs(), 0),
+      ctcs_(config.number_of_jobs()) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
   GetCtcOrCreate(box);
 }
 
 ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
     const Box& box) const {
-  thread_local const std::thread::id id{std::this_thread::get_id()};
-  ContractorIbexPolytope* ctc{nullptr};
-  if (ctc_map_.find_fn(
-          id, [&ctc](const std::unique_ptr<ContractorIbexPolytope>& v) {
-            ctc = v.get();
-          })) {
-    return ctc;
+  thread_local const std::size_t id{get_thread_id()};
+
+  if (ctcs_ready_[id]) {
+    return ctcs_[id].get();
   }
-  auto ctc_unique_ptr =
-      make_unique<ContractorIbexPolytope>(formulas_, box, config_);
-  ctc = ctc_unique_ptr.get();
-  ctc_map_.insert(id, std::move(ctc_unique_ptr));
-  return ctc;
+  ctcs_[id].reset(new ContractorIbexPolytope(formulas_, box, config_));
+  ctcs_ready_[id] = 1;
+  return ctcs_[id].get();
 }
 
 void ContractorIbexPolytopeMt::Prune(ContractorStatus* cs) const {

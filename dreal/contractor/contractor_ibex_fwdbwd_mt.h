@@ -4,8 +4,6 @@
 #include <ostream>
 #include <thread>
 
-#include <cuckoohash_map.hh>
-
 #include "dreal/contractor/contractor_cell.h"
 #include "dreal/contractor/contractor_ibex_fwdbwd.h"
 #include "dreal/contractor/contractor_status.h"
@@ -39,22 +37,22 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
 
   void Prune(ContractorStatus* cs) const override;
 
-  /// Evaluates the constraint using the input @p box and returns the
-  /// result.
-  Box::Interval Evaluate(const Box& box) const;
-
   std::ostream& display(std::ostream& os) const override;
 
  private:
+  // Returns the corresponding contractor assigned to the current thread.
   ContractorIbexFwdbwd* GetCtc() const;
 
+  // Returns the corresponding contractor assigned to the current
+  // thread. If it does not exists, create one.
   ContractorIbexFwdbwd* GetCtcOrCreate(const Box& box) const;
 
   const Formula f_;
   const Config config_;
 
+  // ctcs_ready_[i] is 1 if i-th contractor has been looked up before.
   mutable std::vector<int> ctcs_ready_;
-  mutable std::vector<ContractorIbexFwdbwd*> ctcs_;
+  mutable std::vector<std::unique_ptr<ContractorIbexFwdbwd>> ctcs_;
 };
 
 }  // namespace dreal
