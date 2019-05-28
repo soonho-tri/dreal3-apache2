@@ -6,6 +6,7 @@
 #include "dreal/util/logging.h"
 #include "dreal/util/math.h"
 #include "dreal/util/stat.h"
+#include "dreal/util/timer.h"
 
 using std::cout;
 using std::make_unique;
@@ -30,11 +31,18 @@ class ContractorIbexFwdbwdStat : public Stat {
       print(cout, "{:<45} @ {:<20} = {:>15}\n",
             "Total # of ibex-fwdbwd Pruning (zero-effect)", "Pruning level",
             num_zero_effect_pruning_);
+      if (num_pruning_) {
+        print(cout, "{:<45} @ {:<20} = {:>15f} sec\n",
+              "Total time spent in Pruning", "Pruning level",
+              timer_pruning_.seconds());
+      }
     }
   }
 
   int num_zero_effect_pruning_{0};
   int num_pruning_{0};
+
+  Timer timer_pruning_;
 };
 }  // namespace
 
@@ -76,8 +84,12 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
     DREAL_LOG_TRACE("CTC = {}", ctc_->ctr);
     DREAL_LOG_TRACE("F = {}", f_);
     old_iv_ = iv;
+    stat.timer_pruning_.resume();
     ctc_->contract(iv);  // TODO(soonho): FIXME
-    stat.num_pruning_++;
+    stat.timer_pruning_.pause();
+    if (DREAL_LOG_INFO_ENABLED) {
+      stat.num_pruning_++;
+    }
     bool changed{false};
     // Update output.
     if (iv.is_empty()) {
@@ -102,14 +114,12 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
         DREAL_LOG_TRACE("Changed\n{}", oss.str());
       }
     } else {
-      stat.num_zero_effect_pruning_++;
+      if (DREAL_LOG_INFO_ENABLED) {
+        stat.num_zero_effect_pruning_++;
+      }
       DREAL_LOG_TRACE("NO CHANGE");
     }
   }
-}
-
-Box::Interval ContractorIbexFwdbwd::Evaluate(const Box& box) const {
-  return ctc_->ctr.f.eval(box.interval_vector());
 }
 
 ostream& ContractorIbexFwdbwd::display(ostream& os) const {

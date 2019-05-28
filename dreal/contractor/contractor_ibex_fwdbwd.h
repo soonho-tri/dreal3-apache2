@@ -37,10 +37,6 @@ class ContractorIbexFwdbwd : public ContractorCell {
 
   void Prune(ContractorStatus* cs) const override;
 
-  /// Evaluates the constraint using the input @p box and returns the
-  /// result.
-  Box::Interval Evaluate(const Box& box) const;
-
   std::ostream& display(std::ostream& os) const override;
 
  private:

@@ -4,7 +4,7 @@ namespace dreal {
 
 using std::ostream;
 
-Timer::Timer() : last_start_{Timer::clock::now()} {}
+Timer::Timer() : running_{false}, last_start_{}, elapsed_{clock::duration{0}} {}
 
 void Timer::start() {
   last_start_ = Timer::clock::now();

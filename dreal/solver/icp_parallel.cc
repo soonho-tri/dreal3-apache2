@@ -100,7 +100,9 @@ bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
       global_stack_size->fetch_add(1, std::memory_order_relaxed);
       global_stack->push(iv1);
     } else {
-      local_stack->push_back(iv1);
+      // local_stack->push_back(iv1);
+      global_stack_size->fetch_add(1, std::memory_order_relaxed);
+      global_stack->push(iv1);
     }
     box->mutable_interval_vector() = iv2;
     return true;
@@ -115,12 +117,19 @@ void Worker(const Contractor& contractor, const Config& config,
             Stack<Box::IntervalVector>* const global_stack,
             ContractorStatus* const cs, atomic<int>* const found_delta_sat,
             atomic<int>* const number_of_boxes,
-            atomic<int>* const global_stack_size, IcpStat* const stat) {
+            atomic<int>* const global_stack_size) {
   thread_local vector<Box::IntervalVector> local_stack;
   local_stack.clear();
-  local_stack.reserve(100);
 
-  CdsScopeGuard cds_scope_guard(!main_thread);
+  thread_local IcpStat stat{DREAL_LOG_INFO_ENABLED, id};
+  TimerGuard prune_timer_guard(&stat.timer_prune_, stat.enabled(),
+                               false /* start_timer */);
+  TimerGuard eval_timer_guard(&stat.timer_eval_, stat.enabled(),
+                              false /* start_timer */);
+  TimerGuard branch_timer_guard(&stat.timer_branch_, stat.enabled(),
+                                false /* start_timer */);
+
+  thread_local CdsScopeGuard cds_scope_guard(!main_thread);
 
   bool stack_left_box_first{config.stack_left_box_first()};
 
@@ -134,8 +143,8 @@ void Worker(const Contractor& contractor, const Config& config,
   while ((*found_delta_sat == -1) &&
          (!local_stack.empty() ||
           number_of_boxes->load(std::memory_order_acquire) > 0)) {
-    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-    // when we build dReal python package.
+  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+  // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -153,6 +162,7 @@ void Worker(const Contractor& contractor, const Config& config,
         local_stack.pop_back();
       } else if (!global_stack->pop(current_iv)) {
         // DREAL_LOG_DEBUG("IcpParallel::Worker() NO BOX.");
+        // std::cout << "N" << id << " ";
         continue;
       } else {
         global_stack_size->fetch_sub(1, std::memory_order_acq_rel);
@@ -169,10 +179,11 @@ void Worker(const Contractor& contractor, const Config& config,
     }
 
     // Populating the global stack if there are not enough boxes on it.
-    if (global_stack->empty()) {
+    if (*global_stack_size < config.number_of_jobs() / 4) {
+      // std::cout << "F" << id << " ";
       bool first_one = true;
       for (const Box::IntervalVector& iv :
-           FillUp(current_box.interval_vector(), config.number_of_jobs())) {
+           FillUp(current_box.interval_vector(), config.number_of_jobs() / 2)) {
         if (first_one) {
           // We handle the first iv immediately.
           current_iv = iv;
@@ -189,11 +200,11 @@ void Worker(const Contractor& contractor, const Config& config,
     // 2. Prune the current box.
 
     // DREAL_LOG_TRACE("IcpParallel::Worker() Current Box:\n{}", current_box);
+    prune_timer_guard.resume();
     contractor.Prune(cs);
+    prune_timer_guard.pause();
+    stat.num_prune_++;
 
-    if (DREAL_LOG_INFO_ENABLED) {
-      stat->num_prune_.fetch_add(1, std::memory_order_relaxed);
-    }
     // DREAL_LOG_TRACE(
     //     "IcpParallel::Worker() After pruning, the current box =\n{}",
     //     current_box);
@@ -207,6 +218,7 @@ void Worker(const Contractor& contractor, const Config& config,
 
     // 3.2. The box is non-empty. Check if the box is still feasible
     // under evaluation and it's small enough.
+    eval_timer_guard.resume();
     const optional<ibex::BitSet> evaluation_result{
         EvaluateBox(formula_evaluators, current_box, config.precision(), cs)};
     if (!evaluation_result) {
@@ -225,8 +237,10 @@ void Worker(const Contractor& contractor, const Config& config,
       *found_delta_sat = id;
       return;
     }
+    eval_timer_guard.pause();
 
     // 3.2.3. This box is bigger than delta. Need branching.
+    branch_timer_guard.resume();
     if (!ParallelBranch(*evaluation_result, stack_left_box_first,
                         config.number_of_jobs(), &current_box, &local_stack,
                         global_stack, number_of_boxes, global_stack_size)) {
@@ -238,28 +252,24 @@ void Worker(const Contractor& contractor, const Config& config,
       *found_delta_sat = id;
       return;
     }
+    branch_timer_guard.pause();
 
     need_to_pop = false;
 
     // We alternate between adding-the-left-box-first policy and
     // adding-the-right-box-first policy.
     stack_left_box_first = !stack_left_box_first;
-    if (DREAL_LOG_INFO_ENABLED) {
-      stat->num_branch_.fetch_add(1, std::memory_order_relaxed);
-    }
+    stat.num_branch_++;
   }
 }
 }  // namespace
 
 IcpParallel::IcpParallel(const Config& config)
-    : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs() - 1)} {
-  status_vector_.reserve(config.number_of_jobs());
-}
+    : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs() - 1)} {}
 
 bool IcpParallel::CheckSat(const Contractor& contractor,
                            const vector<FormulaEvaluator>& formula_evaluators,
                            ContractorStatus* const cs) {
-  DREAL_LOG_CRITICAL("IcpParallel::CheckSat()");
   atomic<int> found_delta_sat{-1};
   static CdsInit cds_init{
       true /* main thread is using lock-free containers. */};
@@ -275,33 +285,39 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
   atomic<int> number_of_boxes{number_of_initial_boxes};
   atomic<int> global_stack_size{number_of_initial_boxes};
 
-  static IcpStat stat{DREAL_LOG_INFO_ENABLED};
-
-  status_vector_.clear();
+  std::vector<ContractorStatus> status_vector;
+  status_vector.reserve(number_of_jobs);
   for (int i = 0; i < number_of_jobs; ++i) {
-    status_vector_.push_back(*cs);
+    status_vector.push_back(*cs);
   }
 
+  std::vector<std::future<void>> results;
+  results.reserve(number_of_jobs - 1);
+
   for (int i = 0; i < number_of_jobs - 1; ++i) {
-    status_vector_.push_back(*cs);
-    pool_.enqueue(Worker, contractor, config(), formula_evaluators, i,
-                  false /* not main thread */, &global_stack,
-                  &status_vector_[i], &found_delta_sat, &number_of_boxes,
-                  &global_stack_size, &stat);
+    results.push_back(pool_.enqueue(
+        Worker, contractor, config(), formula_evaluators, i,
+        false /* not main thread */, &global_stack, &status_vector[i],
+        &found_delta_sat, &number_of_boxes, &global_stack_size));
   }
 
   const int last_index{number_of_jobs - 1};
   Worker(contractor, config(), formula_evaluators, last_index,
-         true /* main thread */, &global_stack, &status_vector_[last_index],
-         &found_delta_sat, &number_of_boxes, &global_stack_size, &stat);
+         true /* main thread */, &global_stack, &status_vector[last_index],
+         &found_delta_sat, &number_of_boxes, &global_stack_size);
+
+  // barrier.
+  for (auto&& result : results) {
+    result.get();
+  }
 
   // Post-processing: Join all the contractor statuses.
-  for (const auto& cs_i : status_vector_) {
+  for (const auto& cs_i : status_vector) {
     cs->InplaceJoin(cs_i);
   }
 
   if (found_delta_sat >= 0) {
-    cs->mutable_box() = status_vector_[found_delta_sat].box();
+    cs->mutable_box() = status_vector[found_delta_sat].box();
     return true;
   } else {
     cs->mutable_box().set_empty();
