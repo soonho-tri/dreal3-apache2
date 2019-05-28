@@ -18,7 +18,6 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
       f_{std::move(f)},
       config_{config} {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
-  GetCtcOrCreate(box);
 }
 
 ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
@@ -52,10 +51,6 @@ void ContractorIbexFwdbwdMt::Prune(ContractorStatus* cs) const {
   if (ctc) {
     return ctc->Prune(cs);
   }
-}
-
-Box::Interval ContractorIbexFwdbwdMt::Evaluate(const Box& box) const {
-  return GetCtc()->Evaluate(box);
 }
 
 ostream& ContractorIbexFwdbwdMt::display(ostream& os) const {
