@@ -123,7 +123,7 @@ Contractor make_contractor_seq(const vector<Contractor>& contractors,
 
 Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
                                        const Config& config) {
-  if (config.number_of_jobs() > 1 && !is_forall(f)) {
+  if (config.number_of_jobs() > 0 && !is_forall(f)) {
     return Contractor{
         make_shared<ContractorIbexFwdbwdMt>(std::move(f), box, config)};
   } else {
@@ -134,7 +134,7 @@ Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
 
 Contractor make_contractor_ibex_polytope(vector<Formula> formulas,
                                          const Box& box, const Config& config) {
-  if (config.number_of_jobs() > 1) {
+  if (config.number_of_jobs() > 0) {
     bool include_forall{false};
     for (const auto& f : formulas) {
       if (is_forall(f)) {
