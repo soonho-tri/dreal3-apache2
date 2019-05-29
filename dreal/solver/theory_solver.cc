@@ -26,7 +26,7 @@ using std::vector;
 
 TheorySolver::TheorySolver(const Config& config)
     : config_{config}, icp_{nullptr} {
-  if (config_.number_of_jobs() > 1) {
+  if (config_.number_of_jobs() > 0) {
     icp_ = make_unique<IcpParallel>(config);
   } else {
     icp_ = make_unique<IcpSeq>(config);

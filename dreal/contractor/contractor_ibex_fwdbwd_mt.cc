@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "dreal/util/logging.h"
+#include "dreal/util/timer.h"
 
 using std::make_unique;
 using std::ostream;
@@ -16,8 +17,14 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
     : ContractorCell{Contractor::Kind::IBEX_FWDBWD,
                      ibex::BitSet::empty(box.size()), config},
       f_{std::move(f)},
-      config_{config} {
+      config_{config},
+      ctc_map_(config.number_of_jobs() * LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET) {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
+  ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(box)};
+  // Build input.
+  if (ctc) {
+    mutable_input() = ctc->input();
+  }
 }
 
 ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
@@ -29,20 +36,13 @@ ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
       })) {
     return ctc;
   }
+  Timer tt;
+  tt.start();
   auto ctc_unique_ptr = make_unique<ContractorIbexFwdbwd>(f_, box, config_);
   ctc = ctc_unique_ptr.get();
   ctc_map_.insert(id, std::move(ctc_unique_ptr));
-  return ctc;
-}
-
-ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtc() const {
-  thread_local const std::thread::id id{std::this_thread::get_id()};
-  ContractorIbexFwdbwd* ctc{nullptr};
-  if (ctc_map_.find_fn(id, [&ctc](const unique_ptr<ContractorIbexFwdbwd>& v) {
-        ctc = v.get();
-      })) {
-    return ctc;
-  }
+  tt.pause();
+  DREAL_LOG_CRITICAL("FWDBWD {}", tt.seconds());
   return ctc;
 }
 
@@ -54,11 +54,6 @@ void ContractorIbexFwdbwdMt::Prune(ContractorStatus* cs) const {
 }
 
 ostream& ContractorIbexFwdbwdMt::display(ostream& os) const {
-  ContractorIbexFwdbwd* const ctc{GetCtc()};
-  if (ctc) {
-    return ctc->display(os);
-  } else {
-    return os << "IbexFwdbwd()";
-  }
+  return os << "IbexFwdbwd(" << f_ << ")";
 }
 }  // namespace dreal

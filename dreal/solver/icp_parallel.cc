@@ -120,6 +120,7 @@ void Worker(const Contractor& contractor, const Config& config,
             atomic<int>* const global_stack_size) {
   thread_local vector<Box::IntervalVector> local_stack;
   local_stack.clear();
+  local_stack.reserve(100);
 
   thread_local IcpStat stat{DREAL_LOG_INFO_ENABLED, id};
   TimerGuard prune_timer_guard(&stat.timer_prune_, stat.enabled(),
@@ -170,20 +171,21 @@ void Worker(const Contractor& contractor, const Config& config,
     }
     need_to_pop = true;
 
-    // Spill (Load Balancing): Move an item from the local stack to the global
-    // stack.
-    while (!local_stack.empty() && global_stack->empty()) {
-      global_stack_size->fetch_add(1, std::memory_order_relaxed);
-      global_stack->push(local_stack.back());
-      local_stack.pop_back();
-    }
+    // // Spill (Load Balancing): Move an item from the local stack to the
+    // global
+    // // stack.
+    // while (!local_stack.empty() && global_stack->empty()) {
+    //   global_stack_size->fetch_add(1, std::memory_order_relaxed);
+    //   global_stack->push(local_stack.back());
+    //   local_stack.pop_back();
+    // }
 
     // Populating the global stack if there are not enough boxes on it.
-    if (*global_stack_size < config.number_of_jobs() / 4) {
-      // std::cout << "F" << id << " ";
+    if (global_stack->empty()) {
+      std::cout << "F" << id << " ";
       bool first_one = true;
       for (const Box::IntervalVector& iv :
-           FillUp(current_box.interval_vector(), config.number_of_jobs() / 2)) {
+           FillUp(current_box.interval_vector(), config.number_of_jobs())) {
         if (first_one) {
           // We handle the first iv immediately.
           current_iv = iv;

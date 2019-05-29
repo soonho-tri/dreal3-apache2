@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "dreal/util/logging.h"
+#include "dreal/util/timer.h"
 
 using std::make_unique;
 using std::ostream;
@@ -16,9 +17,14 @@ ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
     : ContractorCell{Contractor::Kind::IBEX_POLYTOPE,
                      ibex::BitSet::empty(box.size()), config},
       formulas_{std::move(formulas)},
-      config_{config} {
+      config_{config},
+      ctc_map_(config.number_of_jobs() * LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
-  GetCtcOrCreate(box);
+  ContractorIbexPolytope* const ctc{GetCtcOrCreate(box)};
+  // Build input.
+  if (ctc) {
+    mutable_input() = ctc->input();
+  }
 }
 
 ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
@@ -31,8 +37,13 @@ ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
           })) {
     return ctc;
   }
+  Timer tt;
+  tt.start();
   auto ctc_unique_ptr =
       make_unique<ContractorIbexPolytope>(formulas_, box, config_);
+  tt.pause();
+  DREAL_LOG_CRITICAL("Polytope {}", tt.seconds());
+
   ctc = ctc_unique_ptr.get();
   ctc_map_.insert(id, std::move(ctc_unique_ptr));
   return ctc;

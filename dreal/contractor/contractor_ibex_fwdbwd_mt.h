@@ -42,8 +42,6 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
   std::ostream& display(std::ostream& os) const override;
 
  private:
-  ContractorIbexFwdbwd* GetCtc() const;
-
   ContractorIbexFwdbwd* GetCtcOrCreate(const Box& box) const;
 
   const Formula f_;
