@@ -12,13 +12,22 @@ using std::unique_ptr;
 
 namespace dreal {
 
+namespace {
+int get_id() {
+  static std::atomic<int> id{0};
+  thread_local const int tid{id++};
+  return tid;
+}
+}  // namespace
+
 ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
                                                const Config& config)
     : ContractorCell{Contractor::Kind::IBEX_FWDBWD,
                      ibex::BitSet::empty(box.size()), config},
       f_{std::move(f)},
       config_{config},
-      ctc_map_(config.number_of_jobs() * LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET) {
+      ctc_ready_(config_.number_of_jobs(), 0),
+      ctcs_(config_.number_of_jobs()) {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
   ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(box)};
   // Build input.
@@ -29,20 +38,14 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
 
 ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
     const Box& box) const {
-  thread_local const std::thread::id id{std::this_thread::get_id()};
-  ContractorIbexFwdbwd* ctc{nullptr};
-  if (ctc_map_.find_fn(id, [&ctc](const unique_ptr<ContractorIbexFwdbwd>& v) {
-        ctc = v.get();
-      })) {
-    return ctc;
+  thread_local const int tid{get_id()};
+  if (ctc_ready_[tid]) {
+    return ctcs_[tid].get();
   }
-  Timer tt;
-  tt.start();
   auto ctc_unique_ptr = make_unique<ContractorIbexFwdbwd>(f_, box, config_);
-  ctc = ctc_unique_ptr.get();
-  ctc_map_.insert(id, std::move(ctc_unique_ptr));
-  tt.pause();
-  DREAL_LOG_CRITICAL("FWDBWD {}", tt.seconds());
+  ContractorIbexFwdbwd* ctc{ctc_unique_ptr.get()};
+  ctcs_[tid] = std::move(ctc_unique_ptr);
+  ctc_ready_[tid] = 1;
   return ctc;
 }
 

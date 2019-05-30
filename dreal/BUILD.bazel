@@ -48,7 +48,6 @@ dreal_cc_binary(
         "//dreal/util:logging",
         "@ezoptionparser",
     ],
-    linkopts = ["-ltcmalloc"],
 )
 
 # ----------------------
