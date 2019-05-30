@@ -24,7 +24,6 @@ class IcpParallel : public Icp {
 
  private:
   ThreadPool pool_;
-  std::vector<ContractorStatus> status_vector_;
 };
 
 }  // namespace dreal

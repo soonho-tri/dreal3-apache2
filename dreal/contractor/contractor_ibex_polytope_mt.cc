@@ -17,8 +17,8 @@ ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
     : ContractorCell{Contractor::Kind::IBEX_POLYTOPE,
                      ibex::BitSet::empty(box.size()), config},
       formulas_{std::move(formulas)},
-      config_{config},
-      ctc_map_(config.number_of_jobs() * LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET) {
+      config_{config} {
+  // ctc_map_(config.number_of_jobs() * LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
   ContractorIbexPolytope* const ctc{GetCtcOrCreate(box)};
   // Build input.
