@@ -22,54 +22,55 @@ namespace dreal {
 
 namespace {
 
-// Returns -1 if it detects that the interval vector is non-bisectable.
-int FindMaxDiamIdx(const Box::IntervalVector& iv) {
-  double max_diam{0.0};
-  int max_diam_idx{-1};
-  for (int i{0}; i < iv.size(); ++i) {
-    const Box::Interval& iv_i{iv[i]};
-    const double diam_i{iv_i.diam()};
-    if (diam_i > max_diam && iv_i.is_bisectable()) {
-      max_diam = diam_i;
-      max_diam_idx = i;
-    }
-  }
-  return max_diam_idx;
-}
+// // Returns -1 if it detects that the interval vector is non-bisectable.
+// int FindMaxDiamIdx(const Box::IntervalVector& iv) {
+//   double max_diam{0.0};
+//   int max_diam_idx{-1};
+//   for (int i{0}; i < iv.size(); ++i) {
+//     const Box::Interval& iv_i{iv[i]};
+//     const double diam_i{iv_i.diam()};
+//     if (diam_i > max_diam && iv_i.is_bisectable()) {
+//       max_diam = diam_i;
+//       max_diam_idx = i;
+//     }
+//   }
+//   return max_diam_idx;
+// }
 
-vector<Box::IntervalVector> DoubleUp(
-    const vector<Box::IntervalVector>& interval_vectors, const int n) {
-  DREAL_ASSERT(interval_vectors.size() <= static_cast<unsigned>(n));
-  vector<Box::IntervalVector> ret;
-  ret.reserve(n);
-  vector<Box::IntervalVector>::size_type i{0};
-  for (; i < n - interval_vectors.size() && i < interval_vectors.size(); ++i) {
-    const Box::IntervalVector& iv{interval_vectors[i]};
-    const int max_diam_idx{FindMaxDiamIdx(iv)};
-    if (max_diam_idx >= 0) {
-      const auto& bisect_result = iv.bisect(max_diam_idx);
-      ret.push_back(bisect_result.first);
-      ret.push_back(bisect_result.second);
-    }
-  }
-  for (; i < interval_vectors.size(); ++i) {
-    ret.push_back(interval_vectors[i]);
-  }
-  return ret;
-}
+// vector<Box::IntervalVector> DoubleUp(
+//     const vector<Box::IntervalVector>& interval_vectors, const int n) {
+//   DREAL_ASSERT(interval_vectors.size() <= static_cast<unsigned>(n));
+//   vector<Box::IntervalVector> ret;
+//   ret.reserve(n);
+//   vector<Box::IntervalVector>::size_type i{0};
+//   for (; i < n - interval_vectors.size() && i < interval_vectors.size(); ++i)
+//   {
+//     const Box::IntervalVector& iv{interval_vectors[i]};
+//     const int max_diam_idx{FindMaxDiamIdx(iv)};
+//     if (max_diam_idx >= 0) {
+//       const auto& bisect_result = iv.bisect(max_diam_idx);
+//       ret.push_back(bisect_result.first);
+//       ret.push_back(bisect_result.second);
+//     }
+//   }
+//   for (; i < interval_vectors.size(); ++i) {
+//     ret.push_back(interval_vectors[i]);
+//   }
+//   return ret;
+// }
 
-vector<Box::IntervalVector> FillUp(const Box::IntervalVector& iv, int n) {
-  vector<Box::IntervalVector> ret{iv};
-  while (ret.size() < static_cast<unsigned>(n)) {
-    vector<Box::IntervalVector> new_ones{DoubleUp(ret, n)};
-    if (new_ones.size() == ret.size()) {
-      break;
-    } else {
-      ret = new_ones;
-    }
-  }
-  return ret;
-}
+// vector<Box::IntervalVector> FillUp(const Box::IntervalVector& iv, int n) {
+//   vector<Box::IntervalVector> ret{iv};
+//   while (ret.size() < static_cast<unsigned>(n)) {
+//     vector<Box::IntervalVector> new_ones{DoubleUp(ret, n)};
+//     if (new_ones.size() == ret.size()) {
+//       break;
+//     } else {
+//       ret = new_ones;
+//     }
+//   }
+//   return ret;
+// }
 
 bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
                     const int number_of_jobs, Box* const box,
@@ -78,15 +79,16 @@ bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
   const pair<double, int> max_diam_and_idx{FindMaxDiam(*box, bitset)};
   const int branching_point{max_diam_and_idx.second};
   if (branching_point >= 0) {
-    const auto boxes = box->interval_vector().bisect(branching_point);
+    Box b(*box);
+    const auto boxes = b.bisect(branching_point);
     const Box::IntervalVector* iv1_ptr{nullptr};
     const Box::IntervalVector* iv2_ptr{nullptr};
     if (stack_left_box_first) {
-      iv1_ptr = &boxes.first;
-      iv2_ptr = &boxes.second;
+      iv1_ptr = &boxes.first.interval_vector();
+      iv2_ptr = &boxes.second.interval_vector();
     } else {
-      iv2_ptr = &boxes.first;
-      iv1_ptr = &boxes.second;
+      iv2_ptr = &boxes.first.interval_vector();
+      iv1_ptr = &boxes.second.interval_vector();
     }
     const Box::IntervalVector& iv1{*iv1_ptr};
     const Box::IntervalVector& iv2{*iv2_ptr};
@@ -129,8 +131,8 @@ void Worker(const Contractor& contractor, const Config& config,
 
   while ((*found_delta_sat == -1) &&
          (number_of_boxes->load(std::memory_order_acquire) > 0)) {
-  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-  // when we build dReal python package.
+    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+    // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -151,23 +153,23 @@ void Worker(const Contractor& contractor, const Config& config,
     }
     need_to_pop = true;
 
-    // Populating the global stack if there are not enough boxes on it.
-    if (global_stack->empty()) {
-      // std::cout << "F" << id << " ";
-      bool first_one = true;
-      for (const Box::IntervalVector& iv :
-           FillUp(current_box.interval_vector(), config.number_of_jobs())) {
-        if (first_one) {
-          // We handle the first iv immediately.
-          current_iv = iv;
-          first_one = false;
-        } else {
-          // The rest of the boxes goes to the global stack.
-          number_of_boxes->fetch_add(1, std::memory_order_relaxed);
-          global_stack->push(iv);
-        }
-      }
-    }
+    // // Populating the global stack if there are not enough boxes on it.
+    // if (global_stack->empty()) {
+    //   // std::cout << "F" << id << " ";
+    //   bool first_one = true;
+    //   for (const Box::IntervalVector& iv :
+    //        FillUp(current_box.interval_vector(), config.number_of_jobs())) {
+    //     if (first_one) {
+    //       // We handle the first iv immediately.
+    //       current_iv = iv;
+    //       first_one = false;
+    //     } else {
+    //       // The rest of the boxes goes to the global stack.
+    //       number_of_boxes->fetch_add(1, std::memory_order_relaxed);
+    //       global_stack->push(iv);
+    //     }
+    //   }
+    // }
 
     // 2. Prune the current box.
 
@@ -249,14 +251,16 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
       true /* main thread is using lock-free containers. */};
   Stack<Box::IntervalVector> global_stack;
   const int number_of_jobs = config().number_of_jobs();
-  const int number_of_initial_boxes = number_of_jobs;
+  // const int number_of_initial_boxes = number_of_jobs;
 
   // Set up the global stack.
-  for (const auto& iv :
-       FillUp(cs->box().interval_vector(), number_of_initial_boxes)) {
-    global_stack.push(iv);
-  }
-  atomic<int> number_of_boxes{number_of_initial_boxes};
+  // for (const auto& iv :
+  //      FillUp(cs->box().interval_vector(), number_of_initial_boxes)) {
+  //   global_stack.push(iv);
+  // }
+  // atomic<int> number_of_boxes{number_of_initial_boxes};
+  global_stack.push(cs->box().interval_vector());
+  atomic<int> number_of_boxes{1};
 
   std::vector<ContractorStatus> status_vector;
   status_vector.reserve(number_of_jobs);
