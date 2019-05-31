@@ -96,6 +96,9 @@ class Box {
   /// @throws std::runtime if @p i -th dimension is not bisectable.
   std::pair<Box, Box> bisect(const Variable& var) const;
 
+  /// Returns true if i-th dimension is bisectable.
+  bool bisectable(int i) const;
+
   /// Updates the current box by taking union with @p b.
   ///
   /// @pre variables() == b.variables().

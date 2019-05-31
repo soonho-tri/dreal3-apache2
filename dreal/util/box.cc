@@ -172,6 +172,16 @@ pair<Box, Box> Box::bisect(const Variable& var) const {
   return bisect((*var_to_idx_)[var]);
 }
 
+bool Box::bisectable(const int i) {
+  const Variable& v{(*variables)[i]};
+  switch (v.get_type()) {
+    case Variable::Type::CONTINUOUS:
+    case Variable::Type::INTEGER:
+    case Variable::Type::BINARY:
+    case Variable::Type::BOOLEAN:
+  }
+}
+
 pair<Box, Box> Box::bisect_int(const int i) const {
   DREAL_ASSERT(idx_to_var_->at(i).get_type() == Variable::Type::INTEGER ||
                idx_to_var_->at(i).get_type() == Variable::Type::BINARY);

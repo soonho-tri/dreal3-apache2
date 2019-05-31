@@ -22,55 +22,53 @@ namespace dreal {
 
 namespace {
 
-// // Returns -1 if it detects that the interval vector is non-bisectable.
-// int FindMaxDiamIdx(const Box::IntervalVector& iv) {
-//   double max_diam{0.0};
-//   int max_diam_idx{-1};
-//   for (int i{0}; i < iv.size(); ++i) {
-//     const Box::Interval& iv_i{iv[i]};
-//     const double diam_i{iv_i.diam()};
-//     if (diam_i > max_diam && iv_i.is_bisectable()) {
-//       max_diam = diam_i;
-//       max_diam_idx = i;
-//     }
-//   }
-//   return max_diam_idx;
-// }
+// Returns -1 if it detects that the interval vector is non-bisectable.
+int FindMaxDiamIdx(const Box::IntervalVector& iv) {
+  double max_diam{0.0};
+  int max_diam_idx{-1};
+  for (int i{0}; i < iv.size(); ++i) {
+    const Box::Interval& iv_i{iv[i]};
+    const double diam_i{iv_i.diam()};
+    if (diam_i > max_diam && iv_i.is_bisectable()) {
+      max_diam = diam_i;
+      max_diam_idx = i;
+    }
+  }
+  return max_diam_idx;
+}
 
-// vector<Box::IntervalVector> DoubleUp(
-//     const vector<Box::IntervalVector>& interval_vectors, const int n) {
-//   DREAL_ASSERT(interval_vectors.size() <= static_cast<unsigned>(n));
-//   vector<Box::IntervalVector> ret;
-//   ret.reserve(n);
-//   vector<Box::IntervalVector>::size_type i{0};
-//   for (; i < n - interval_vectors.size() && i < interval_vectors.size(); ++i)
-//   {
-//     const Box::IntervalVector& iv{interval_vectors[i]};
-//     const int max_diam_idx{FindMaxDiamIdx(iv)};
-//     if (max_diam_idx >= 0) {
-//       const auto& bisect_result = iv.bisect(max_diam_idx);
-//       ret.push_back(bisect_result.first);
-//       ret.push_back(bisect_result.second);
-//     }
-//   }
-//   for (; i < interval_vectors.size(); ++i) {
-//     ret.push_back(interval_vectors[i]);
-//   }
-//   return ret;
-// }
+vector<Box> DoubleUp(const vector<Box>& boxes, const int n, Box box) {
+  DREAL_ASSERT(boxes.size() <= static_cast<unsigned>(n));
+  vector<Box> ret;
+  ret.reserve(n);
+  vector<Box>::size_type i{0};
+  for (; i < n - boxes.size() && i < boxes.size(); ++i) {
+    const Box& box{boxes[i]};
+    const int max_diam_idx{FindMaxDiamIdx(box)};
+    if (max_diam_idx >= 0) {
+      const auto& bisect_result = iv.bisect(max_diam_idx);
+      ret.push_back(bisect_result.first);
+      ret.push_back(bisect_result.second);
+    }
+  }
+  for (; i < boxes.size(); ++i) {
+    ret.push_back(boxes[i]);
+  }
+  return ret;
+}
 
-// vector<Box::IntervalVector> FillUp(const Box::IntervalVector& iv, int n) {
-//   vector<Box::IntervalVector> ret{iv};
-//   while (ret.size() < static_cast<unsigned>(n)) {
-//     vector<Box::IntervalVector> new_ones{DoubleUp(ret, n)};
-//     if (new_ones.size() == ret.size()) {
-//       break;
-//     } else {
-//       ret = new_ones;
-//     }
-//   }
-//   return ret;
-// }
+vector<Box> FillUp(const Box& box, int n) {
+  vector<Box> ret{iv};
+  while (ret.size() < static_cast<unsigned>(n)) {
+    vector<Box> new_ones{DoubleUp(ret, n)};
+    if (new_ones.size() == ret.size()) {
+      break;
+    } else {
+      ret = new_ones;
+    }
+  }
+  return ret;
+}
 
 bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
                     const int number_of_jobs, Box* const box,
@@ -131,8 +129,8 @@ void Worker(const Contractor& contractor, const Config& config,
 
   while ((*found_delta_sat == -1) &&
          (number_of_boxes->load(std::memory_order_acquire) > 0)) {
-    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-    // when we build dReal python package.
+  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+  // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
