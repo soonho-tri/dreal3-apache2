@@ -94,7 +94,6 @@ dreal_cc_library(
         "//dreal/smt2:__pkg__",
     ],
     deps = [
-        "@thread_pool",
         ":branch",
         ":config",
         ":filter_assertion",
@@ -118,6 +117,7 @@ dreal_cc_library(
         "//dreal/util:scoped_vector",
         "//dreal/util:stat",
         "//dreal/util:timer",
+        "//third_party/com_github_progschj_threadpool:thread_pool",
     ],
 )
 
