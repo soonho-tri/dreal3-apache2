@@ -111,7 +111,7 @@ dreal_cc_googletest(
     ],
     tags = ["extlib"],
     deps = [
-        "@thread_pool",
+        "//third_party/com_github_progschj_threadpool:thread_pool",
     ],
 )
 
