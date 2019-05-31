@@ -91,4 +91,16 @@ cc_test(
     ],
 )
 
+dreal_cc_googletest(
+    name = "thread_pool_test",
+    size = "small",
+    srcs = [
+        "thread_pool_test.cc",
+    ],
+    tags = ["extlib"],
+    deps = [
+        "//third_party/com_github_progschj_threadpool:thread_pool",
+    ],
+)
+
 cpplint()
