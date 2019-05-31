@@ -1,5 +1,6 @@
 #pragma once
 
+#include <future>
 #include <vector>
 
 #include "ThreadPool/ThreadPool.h"
@@ -24,6 +25,9 @@ class IcpParallel : public Icp {
 
  private:
   ThreadPool pool_;
+
+  std::vector<std::future<void>> results_;
+  std::vector<ContractorStatus> status_vector_;
 };
 
 }  // namespace dreal
