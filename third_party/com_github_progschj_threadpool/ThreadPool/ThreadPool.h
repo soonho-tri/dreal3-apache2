@@ -19,6 +19,11 @@ class ThreadPool {
       -> std::future<typename std::result_of<F(Args...)>::type>;
   ~ThreadPool();
 
+  static int get_thread_id() {
+    thread_local const int tid{global_thread_id_index_++};
+    return tid;
+  }
+
  private:
   // need to keep track of threads so we can join them
   std::vector<std::thread> workers;
@@ -28,6 +33,9 @@ class ThreadPool {
   // synchronization
   std::mutex queue_mutex;
   std::condition_variable condition;
+
+  static std::atomic<int> global_thread_id_index_;
+
   bool stop;
 };
 
@@ -82,6 +90,7 @@ inline ThreadPool::~ThreadPool() {
   }
   condition.notify_all();
   for (std::thread& worker : workers) worker.join();
+  global_thread_id_index_ = 0;
 }
 
 #endif
