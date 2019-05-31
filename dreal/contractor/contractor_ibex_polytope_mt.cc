@@ -2,6 +2,9 @@
 
 #include <utility>
 
+#include "ThreadPool/ThreadPool.h"
+
+#include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
 #include "dreal/util/timer.h"
 
@@ -17,43 +20,37 @@ ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
     : ContractorCell{Contractor::Kind::IBEX_POLYTOPE,
                      ibex::BitSet::empty(box.size()), config},
       formulas_{std::move(formulas)},
-      config_{config} {
-  // ctc_map_(config.number_of_jobs() * LIBCUCKOO_DEFAULT_SLOT_PER_BUCKET) {
+      config_{config},
+      ctc_ready_(config_.number_of_jobs(), 0),
+      ctcs_(config_.number_of_jobs()) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
   ContractorIbexPolytope* const ctc{GetCtcOrCreate(box)};
+  DREAL_ASSERT(ctc);
   // Build input.
-  if (ctc) {
-    mutable_input() = ctc->input();
-  }
+  mutable_input() = ctc->input();
+
+  is_dummy_ = ctc->is_dummy();
 }
 
 ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
     const Box& box) const {
-  thread_local const std::thread::id id{std::this_thread::get_id()};
-  ContractorIbexPolytope* ctc{nullptr};
-  if (ctc_map_.find_fn(
-          id, [&ctc](const std::unique_ptr<ContractorIbexPolytope>& v) {
-            ctc = v.get();
-          })) {
-    return ctc;
+  thread_local const int tid{ThreadPool::get_thread_id()};
+  if (ctc_ready_[tid]) {
+    return ctcs_[tid].get();
   }
-  Timer tt;
-  tt.start();
   auto ctc_unique_ptr =
       make_unique<ContractorIbexPolytope>(formulas_, box, config_);
-  tt.pause();
-  DREAL_LOG_CRITICAL("Polytope {}", tt.seconds());
-
-  ctc = ctc_unique_ptr.get();
-  ctc_map_.insert(id, std::move(ctc_unique_ptr));
+  ContractorIbexPolytope* ctc = ctc_unique_ptr.get();
+  DREAL_ASSERT(ctc);
+  ctcs_[tid] = std::move(ctc_unique_ptr);
+  ctc_ready_[tid] = 1;
   return ctc;
 }
 
 void ContractorIbexPolytopeMt::Prune(ContractorStatus* cs) const {
   ContractorIbexPolytope* const ctc{GetCtcOrCreate(cs->box())};
-  if (ctc) {
-    return ctc->Prune(cs);
-  }
+  DREAL_ASSERT(ctc && !is_dummy_);
+  return ctc->Prune(cs);
 }
 
 ostream& ContractorIbexPolytopeMt::display(ostream& os) const {
@@ -63,5 +60,7 @@ ostream& ContractorIbexPolytopeMt::display(ostream& os) const {
   }
   return os << ")";
 }
+
+bool ContractorIbexPolytopeMt::is_dummy() const { return is_dummy_; }
 
 }  // namespace dreal

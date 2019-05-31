@@ -3,8 +3,7 @@
 #include <memory>
 #include <ostream>
 #include <thread>
-
-#include <cuckoohash_map.hh>
+#include <vector>
 
 #include "dreal/contractor/contractor_cell.h"
 #include "dreal/contractor/contractor_ibex_fwdbwd.h"
@@ -41,10 +40,14 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
 
   std::ostream& display(std::ostream& os) const override;
 
+  /// Returns true if it has no internal ibex contractor.
+  bool is_dummy() const;
+
  private:
   ContractorIbexFwdbwd* GetCtcOrCreate(const Box& box) const;
 
   const Formula f_;
+  bool is_dummy_{false};
   const Config config_;
 
   mutable std::vector<int> ctc_ready_;

@@ -124,13 +124,23 @@ Contractor make_contractor_seq(const vector<Contractor>& contractors,
 Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
                                        const Config& config) {
   if (config.number_of_jobs() > 0 && !is_forall(f)) {
-    return Contractor{
-        make_shared<ContractorIbexFwdbwdMt>(std::move(f), box, config)};
+    const auto ctc =
+        make_shared<ContractorIbexFwdbwdMt>(std::move(f), box, config);
+    if (ctc->is_dummy()) {
+      return make_contractor_id(config);
+    } else {
+      return Contractor{ctc};
+    }
   } else {
-    return Contractor{
-        make_shared<ContractorIbexFwdbwd>(std::move(f), box, config)};
+    const auto ctc =
+        make_shared<ContractorIbexFwdbwd>(std::move(f), box, config);
+    if (ctc->is_dummy()) {
+      return make_contractor_id(config);
+    } else {
+      return Contractor{ctc};
+    }
   }
-}
+}  // namespace dreal
 
 Contractor make_contractor_ibex_polytope(vector<Formula> formulas,
                                          const Box& box, const Config& config) {
