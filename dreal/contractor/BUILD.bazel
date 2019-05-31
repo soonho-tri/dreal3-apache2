@@ -59,8 +59,8 @@ dreal_cc_library(
         "//dreal/util:nnfizer",
         "//dreal/util:optional",
         "//dreal/util:stat",
+        "//third_party/com_github_progschj_threadpool:thread_pool",
         "@ibex",
-        "@libcuckoo",
     ],
 )
 

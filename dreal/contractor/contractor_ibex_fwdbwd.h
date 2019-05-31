@@ -39,8 +39,12 @@ class ContractorIbexFwdbwd : public ContractorCell {
 
   std::ostream& display(std::ostream& os) const override;
 
+  /// Returns true if it has no internal ibex contractor.
+  bool is_dummy() const;
+
  private:
   const Formula f_;
+  bool is_dummy_{false};
   IbexConverter ibex_converter_;
   std::unique_ptr<const ibex::ExprCtr> expr_ctr_;
   std::unique_ptr<ibex::CtcFwdBwd> ctc_;
