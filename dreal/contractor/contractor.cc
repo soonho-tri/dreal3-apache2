@@ -153,12 +153,22 @@ Contractor make_contractor_ibex_polytope(vector<Formula> formulas,
       }
     }
     if (!include_forall) {
-      return Contractor{make_shared<ContractorIbexPolytopeMt>(
-          std::move(formulas), box, config)};
+      const auto ctc = make_shared<ContractorIbexPolytopeMt>(
+          std::move(formulas), box, config);
+      if (ctc->is_dummy()) {
+        return make_contractor_id(config);
+      } else {
+        return Contractor{ctc};
+      }
     }
   }
-  return Contractor{
-      make_shared<ContractorIbexPolytope>(std::move(formulas), box, config)};
+  const auto ctc =
+      make_shared<ContractorIbexPolytope>(std::move(formulas), box, config);
+  if (ctc->is_dummy()) {
+    return make_contractor_id(config);
+  } else {
+    return Contractor{ctc};
+  }
 }
 
 Contractor make_contractor_fixpoint(TerminationCondition term_cond,
