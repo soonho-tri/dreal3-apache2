@@ -78,6 +78,9 @@ class ContractorForall : public ContractorCell {
         inner_delta;
     context_for_counterexample_.mutable_config().mutable_use_polytope() =
         config.use_polytope_in_forall();
+    context_for_counterexample_.mutable_config().mutable_number_of_jobs() =
+        config.number_of_jobs();
+    std::cerr << "parallel config jobs = " << config.number_of_jobs() << "\n";
     contractor_ = GenericContractorGenerator{}.Generate(
         get_quantified_formula(f_), ExtendBox(box, quantified_variables_),
         context_for_counterexample_.config());
@@ -171,8 +174,8 @@ class ContractorForall : public ContractorCell {
     Config& config_for_counterexample{
         context_for_counterexample_.mutable_config()};
     while (true) {
-      // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-      // when we build dReal python package.
+    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+    // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
       if (g_interrupted) {
         DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -189,6 +192,9 @@ class ContractorForall : public ContractorCell {
       // Alternate the stacking order.
       config_for_counterexample.mutable_stack_left_box_first() =
           !config_for_counterexample.stack_left_box_first();
+      std::cerr << "HERE: "
+                << context_for_counterexample_.config().number_of_jobs()
+                << std::endl;
       optional<Box> counterexample_opt = context_for_counterexample_.CheckSat();
       if (counterexample_opt) {
         Box& counterexample{*counterexample_opt};

@@ -21,9 +21,12 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
                      ibex::BitSet::empty(box.size()), config},
       f_{std::move(f)},
       config_{config},
-      ctc_ready_(config_.number_of_jobs(), 0),
-      ctcs_(config_.number_of_jobs()) {
+      ctc_ready_(config_.number_of_jobs() * config_.number_of_jobs(), 0),
+      ctcs_(ctc_ready_.size()) {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
+
+  std::cerr << "ctcs_.size() = " << ctcs_.size() << std::endl;
+
   ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(box)};
   DREAL_ASSERT(ctc);
   // Build input.
@@ -35,7 +38,8 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
 ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
     const Box& box) const {
   thread_local const int tid{ThreadPool::get_thread_id()};
-  if (ctc_ready_[tid]) {
+  // DREAL_LOG_CRITICAL("{} -- {}", ctc_ready_.size(), tid);
+  if (ctc_ready_[tid]) {  // boom
     return ctcs_[tid].get();
   }
   auto ctc_unique_ptr = make_unique<ContractorIbexFwdbwd>(f_, box, config_);
@@ -49,6 +53,9 @@ ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
 void ContractorIbexFwdbwdMt::Prune(ContractorStatus* cs) const {
   DREAL_ASSERT(!is_dummy_);
   ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(cs->box())};
+  if (!ctc) {
+    std::cerr << f_ << "\n";
+  }
   DREAL_ASSERT(ctc);
   return ctc->Prune(cs);
 }
