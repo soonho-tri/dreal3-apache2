@@ -22,7 +22,7 @@ ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
       formulas_{std::move(formulas)},
       config_{config},
       ctc_ready_(config_.number_of_jobs(), 0),
-      ctcs_(config_.number_of_jobs()) {
+      ctcs_(ctc_ready_.size()) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
   ContractorIbexPolytope* const ctc{GetCtcOrCreate(box)};
   DREAL_ASSERT(ctc);

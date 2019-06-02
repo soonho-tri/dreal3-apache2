@@ -48,12 +48,14 @@ vector<RelationalFormulaEvaluator> BuildFormulaEvaluators(const Formula& f) {
 }  // namespace
 
 ForallFormulaEvaluator::ForallFormulaEvaluator(Formula f, const double epsilon,
-                                               const double delta)
+                                               const double delta,
+                                               const int number_of_jobs)
     : FormulaEvaluatorCell{std::move(f)},
       evaluators_{BuildFormulaEvaluators(formula())} {
   DREAL_ASSERT(is_forall(formula()));
   DREAL_LOG_DEBUG("ForallFormulaEvaluator({})", formula());
   context_.mutable_config().mutable_precision() = delta;
+  context_.mutable_config().mutable_number_of_jobs() = number_of_jobs;
   for (const Variable& exist_var : formula().GetFreeVariables()) {
     context_.DeclareVariable(exist_var);
   }

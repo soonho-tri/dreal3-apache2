@@ -148,22 +148,22 @@ void Worker(const Contractor& contractor, const Config& config,
     }
     need_to_pop = true;
 
-    // // Populating the global stack if there are not enough boxes on it.
-    // if (global_stack->empty()) {
-    //   // std::cout << "F" << id << " ";
-    //   bool first_one = true;
-    //   for (const Box& box : FillUp(current_box, config.number_of_jobs())) {
-    //     if (first_one) {
-    //       // We handle the first iv immediately.
-    //       current_box = box;
-    //       first_one = false;
-    //     } else {
-    //       // The rest of the boxes goes to the global stack.
-    //       number_of_boxes->fetch_add(1, std::memory_order_relaxed);
-    //       global_stack->push(box);
-    //     }
-    //   }
-    // }
+    // Populating the global stack if there are not enough boxes on it.
+    if (global_stack->empty()) {
+      // std::cout << "F" << id << " ";
+      bool first_one = true;
+      for (const Box& box : FillUp(current_box, config.number_of_jobs())) {
+        if (first_one) {
+          // We handle the first iv immediately.
+          current_box = box;
+          first_one = false;
+        } else {
+          // The rest of the boxes goes to the global stack.
+          number_of_boxes->fetch_add(1, std::memory_order_relaxed);
+          global_stack->push(box);
+        }
+      }
+    }
 
     // 2. Prune the current box.
 
@@ -262,9 +262,6 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
     global_stack.push(box);
     ++number_of_boxes;
   }
-
-  // global_stack.push(cs->box());
-  // atomic<int> number_of_boxes{1};
 
   for (int i = 0; i < number_of_jobs; ++i) {
     status_vector_.push_back(*cs);

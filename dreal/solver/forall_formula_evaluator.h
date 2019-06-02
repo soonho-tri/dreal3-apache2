@@ -37,7 +37,8 @@ namespace dreal {
 ///
 class ForallFormulaEvaluator : public FormulaEvaluatorCell {
  public:
-  ForallFormulaEvaluator(Formula f, double epsilon, double delta);
+  ForallFormulaEvaluator(Formula f, double epsilon, double delta,
+                         int number_of_jobs);
 
   /// Deleted copy constructor.
   ForallFormulaEvaluator(const ForallFormulaEvaluator&) = delete;
