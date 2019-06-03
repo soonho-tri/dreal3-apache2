@@ -78,6 +78,8 @@ class ContractorForall : public ContractorCell {
         inner_delta;
     context_for_counterexample_.mutable_config().mutable_use_polytope() =
         config.use_polytope_in_forall();
+    context_for_counterexample_.mutable_config().mutable_number_of_jobs() =
+        config.number_of_jobs();
     contractor_ = GenericContractorGenerator{}.Generate(
         get_quantified_formula(f_), ExtendBox(box, quantified_variables_),
         context_for_counterexample_.config());

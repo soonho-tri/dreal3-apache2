@@ -3,7 +3,9 @@ try-import %workspace%/user.bazelrc
 
 # Add C++14 compiler flags.
 build --cxxopt=-std=c++14
+build --cxxopt=-mcx16
 build --host_cxxopt=-std=c++14
+build --host_cxxopt=-mcx16
 
 # Default to an optimized build.
 build -c opt

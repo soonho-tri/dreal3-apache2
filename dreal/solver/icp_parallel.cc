@@ -49,6 +49,8 @@ vector<Box> DoubleUp(const vector<Box>& boxes, const int n) {
       const auto bisect_result = box.bisect(max_diam_idx);
       ret.push_back(bisect_result.first);
       ret.push_back(bisect_result.second);
+    } else {
+      ret.push_back(box);
     }
   }
   for (; i < boxes.size(); ++i) {
@@ -90,10 +92,19 @@ bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
     const Box& box1{*box1_ptr};
     const Box& box2{*box2_ptr};
 
-    number_of_boxes->fetch_add(1, std::memory_order_relaxed);
     // TODO(soonho): FIXME. Decision #1: when to add to the global stack or a
     // local_stack?
+    // if (*number_of_boxes < number_of_jobs / 4) {
+    // if (global_stack->empty()) {
+    //   std::cerr << "F";
+    //   for (const Box& box : FillUp(box1, number_of_jobs / 4)) {
+    //     number_of_boxes->fetch_add(1, std::memory_order_relaxed);
+    //     global_stack->push(box);
+    //   }
+    // } else {
+    number_of_boxes->fetch_add(1, std::memory_order_relaxed);
     global_stack->push(box1);
+    // }
     *box = box2;
     return true;
   }
@@ -138,32 +149,15 @@ void Worker(const Contractor& contractor, const Config& config,
     // 1. Pick a box from local and global stack if needed.
     //  A) First check the local stack.
     //  B) If the local stack is empty, get a box from the global stack.
-    /// C) If there are nothing, spin.
+    /// C) If there is nothing, spin.
     if (need_to_pop) {
       if (!global_stack->pop(current_box)) {
         // DREAL_LOG_DEBUG("IcpParallel::Worker() NO BOX.");
-        // std::cout << "N" << id << " ";
+        // std::cerr << "N" << id << " ";
         continue;
       }
     }
     need_to_pop = true;
-
-    // // Populating the global stack if there are not enough boxes on it.
-    // if (global_stack->empty()) {
-    //   // std::cout << "F" << id << " ";
-    //   bool first_one = true;
-    //   for (const Box& box : FillUp(current_box, config.number_of_jobs())) {
-    //     if (first_one) {
-    //       // We handle the first iv immediately.
-    //       current_box = box;
-    //       first_one = false;
-    //     } else {
-    //       // The rest of the boxes goes to the global stack.
-    //       number_of_boxes->fetch_add(1, std::memory_order_relaxed);
-    //       global_stack->push(box);
-    //     }
-    //   }
-    // }
 
     // 2. Prune the current box.
 
@@ -171,7 +165,9 @@ void Worker(const Contractor& contractor, const Config& config,
     prune_timer_guard.resume();
     contractor.Prune(cs);
     prune_timer_guard.pause();
-    stat.num_prune_++;
+    if (stat.enabled()) {
+      stat.num_prune_++;
+    }
 
     // DREAL_LOG_TRACE(
     //     "IcpParallel::Worker() After pruning, the current box =\n{}",
@@ -236,11 +232,18 @@ IcpParallel::IcpParallel(const Config& config)
     : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs() - 1)} {
   results_.reserve(config.number_of_jobs() - 1);
   status_vector_.reserve(config.number_of_jobs());
+  // std::cerr << "IcpParallel()\n";
 }
 
 bool IcpParallel::CheckSat(const Contractor& contractor,
                            const vector<FormulaEvaluator>& formula_evaluators,
                            ContractorStatus* const cs) {
+  // Initial Prune
+  contractor.Prune(cs);
+  if (cs->box().empty()) {
+    return false;
+  }
+
   results_.clear();
   status_vector_.clear();
   atomic<int> found_delta_sat{-1};
@@ -249,22 +252,15 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
   Stack<Box> global_stack;
 
   const int number_of_jobs = config().number_of_jobs();
-  const int number_of_initial_boxes = number_of_jobs;
 
-  // Initial Prune
-  contractor.Prune(cs);
-  if (cs->box().empty()) {
-    return false;
-  }
   atomic<int> number_of_boxes{0};
-  // Set up the global stack.
-  for (const auto& box : FillUp(cs->box(), number_of_initial_boxes)) {
+
+  for (const Box& box : FillUp(cs->box(), number_of_jobs)) {
     global_stack.push(box);
     ++number_of_boxes;
   }
-
   // global_stack.push(cs->box());
-  // atomic<int> number_of_boxes{1};
+  // ++number_of_boxes;
 
   for (int i = 0; i < number_of_jobs; ++i) {
     status_vector_.push_back(*cs);

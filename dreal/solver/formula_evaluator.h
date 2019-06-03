@@ -86,16 +86,18 @@ class FormulaEvaluator {
 
   friend FormulaEvaluator make_forall_formula_evaluator(const Formula& f,
                                                         double epsilon,
-                                                        double delta);
+                                                        double delta,
+                                                        int number_of_jobs);
 };
 
 /// Creates FormulaEvaluator for a relational formula @p f using @p variables.
 FormulaEvaluator make_relational_formula_evaluator(const Formula& f);
 
 /// Creates FormulaEvaluator for a univerally quantified formula @p f
-/// using @p variables, @p epsilon, and @p delta.
+/// using @p variables, @p epsilon, @p delta, and @p number_of_jobs.
 FormulaEvaluator make_forall_formula_evaluator(const Formula& f, double epsilon,
-                                               double delta);
+                                               double delta,
+                                               int number_of_jobs);
 
 std::ostream& operator<<(std::ostream& os, const FormulaEvaluator& evaluator);
 

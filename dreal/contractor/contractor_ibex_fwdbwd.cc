@@ -59,9 +59,8 @@ ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
   // Build num_ctr and ctc_.
   expr_ctr_.reset(ibex_converter_.Convert(f_));
   if (expr_ctr_) {
-    auto* const num_ctr =
-        new ibex::NumConstraint{ibex_converter_.variables(), *expr_ctr_};
-    ctc_ = make_unique<ibex::CtcFwdBwd>(*num_ctr);
+    num_ctr_ = make_unique<ibex::NumConstraint>(ibex_converter_.variables(),
+                                                *expr_ctr_);
     // Build input.
     ibex::BitSet& input{mutable_input()};
     for (const Variable& var : f_.GetFreeVariables()) {
@@ -72,38 +71,35 @@ ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
   }
 }
 
-ContractorIbexFwdbwd::~ContractorIbexFwdbwd() {
-  if (ctc_) {
-    delete &ctc_->ctr;
-  }
-}
-
 void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
   thread_local ContractorIbexFwdbwdStat stat{DREAL_LOG_INFO_ENABLED};
-  DREAL_ASSERT(!is_dummy_ && ctc_);
+  DREAL_ASSERT(!is_dummy_ && num_ctr_);
 
   Box::IntervalVector& iv{cs->mutable_box().mutable_interval_vector()};
   DREAL_LOG_TRACE("ContractorIbexFwdbwd::Prune");
-  DREAL_LOG_TRACE("CTC = {}", ctc_->ctr);
+  DREAL_LOG_TRACE("CTC = {}", *num_ctr_);
   DREAL_LOG_TRACE("F = {}", f_);
   old_iv_ = iv;
   stat.timer_pruning_.resume();
-  ctc_->contract(iv);  // TODO(soonho): FIXME
+  const bool is_inner{num_ctr_->f.backward(num_ctr_->right_hand_side(),
+                                           iv)};  // true if unchanged.
   stat.timer_pruning_.pause();
   if (DREAL_LOG_INFO_ENABLED) {
     stat.num_pruning_++;
   }
   bool changed{false};
   // Update output.
-  if (iv.is_empty()) {
-    changed = true;
-    cs->mutable_output().fill(0, cs->box().size() - 1);
-  } else {
-    for (int i{0}, idx = ctc_->output->min(); i < ctc_->output->size();
-         ++i, idx = ctc_->output->next(idx)) {
-      if (old_iv_[idx] != iv[idx]) {
-        cs->mutable_output().add(idx);
-        changed = true;
+  if (!is_inner) {
+    if (iv.is_empty()) {
+      changed = true;
+      cs->mutable_output().fill(0, cs->box().size() - 1);
+    } else {
+      for (int i{0}, idx = input().min(); i < input().size();
+           ++i, idx = input().next(idx)) {
+        if (old_iv_[idx] != iv[idx]) {
+          cs->mutable_output().add(idx);
+          changed = true;
+        }
       }
     }
   }
@@ -125,9 +121,8 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
 }
 
 ostream& ContractorIbexFwdbwd::display(ostream& os) const {
-  DREAL_ASSERT(ctc_);
-  const ibex::NumConstraint& num_ctr{ctc_->ctr};
-  return os << "IbexFwdbwd(" << num_ctr << ")";
+  DREAL_ASSERT(num_ctr_);
+  return os << "IbexFwdbwd(" << *num_ctr_ << ")";
 }
 
 bool ContractorIbexFwdbwd::is_dummy() const { return is_dummy_; }

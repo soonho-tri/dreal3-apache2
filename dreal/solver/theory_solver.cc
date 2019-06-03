@@ -25,13 +25,7 @@ using std::set;
 using std::vector;
 
 TheorySolver::TheorySolver(const Config& config)
-    : config_{config}, icp_{nullptr} {
-  if (config_.number_of_jobs() > 0) {
-    icp_ = make_unique<IcpParallel>(config);
-  } else {
-    icp_ = make_unique<IcpSeq>(config);
-  }
-}
+    : config_{config}, icp_{nullptr} {}
 
 namespace {
 bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
@@ -43,15 +37,15 @@ bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
   // (return false).
   for (int i{0}; i < old_iv.size(); ++i) {
     const double new_i{new_iv[i].diam()};
-    const double old_i{old_iv[i].diam()};
     // If the width of new interval is +oo, it has no improvement
     if (new_i == numeric_limits<double>::infinity()) {
       continue;
     }
     // If the i-th dimension was already a point, nothing to improve.
-    if (old_i == 0) {
+    if (old_iv[i].is_degenerated()) {
       continue;
     }
+    const double old_i{old_iv[i].diam()};
     const double improvement{1 - new_i / old_i};
     DREAL_ASSERT(!std::isnan(improvement));
     if (improvement >= threshold) {
@@ -163,8 +157,8 @@ vector<FormulaEvaluator> TheorySolver::BuildFormulaEvaluator(
     if (it == formula_evaluator_cache_.end()) {
       DREAL_LOG_DEBUG("TheorySolver::BuildFormulaEvaluator: {}", f);
       if (is_forall(f)) {
-        formula_evaluators.push_back(
-            make_forall_formula_evaluator(f, epsilon, inner_delta));
+        formula_evaluators.push_back(make_forall_formula_evaluator(
+            f, epsilon, inner_delta, config_.number_of_jobs()));
       } else {
         formula_evaluators.push_back(make_relational_formula_evaluator(f));
       }
@@ -189,6 +183,19 @@ bool TheorySolver::CheckSat(const Box& box, const vector<Formula>& assertions) {
   const optional<Contractor> contractor{
       BuildContractor(assertions, &contractor_status)};
   if (contractor) {
+    if (!icp_) {
+      if (!contractor->include_forall() && config_.number_of_jobs() > 1) {
+        // std::cerr << "PARALLEL: " << *contractor << std::endl;
+        // std::cerr << box << std::endl;
+        icp_ = make_unique<IcpParallel>(config_);
+      } else {
+        // std::cerr << "SEQ: " << *contractor << std::endl;
+        // std::cerr << box << std::endl;
+        // std::cerr << contractor->include_forall() << "\t"
+        //           << config_.number_of_jobs() << std::endl;
+        icp_ = make_unique<IcpSeq>(config_);
+      }
+    }
     icp_->CheckSat(*contractor, BuildFormulaEvaluator(assertions),
                    &contractor_status);
     if (contractor_status.box().empty()) {

@@ -32,7 +32,7 @@ ContractorFixpoint::ContractorFixpoint(TerminationCondition term_cond,
 
 void ContractorFixpoint::Prune(ContractorStatus* cs) const {
   const Box::IntervalVector& iv{cs->box().interval_vector()};
-  thread_local Box::IntervalVector old_iv{iv};  // TODO(soonho): FIXME
+  Box::IntervalVector old_iv{iv};  // TODO(soonho): FIXME
   do {
   // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
   // when we build dReal python package.
@@ -45,7 +45,7 @@ void ContractorFixpoint::Prune(ContractorStatus* cs) const {
     old_iv = iv;
     for (const Contractor& ctc : contractors_) {
       ctc.Prune(cs);
-      if (cs->box().empty()) {
+      if (iv.is_empty()) {
         return;
       }
     }

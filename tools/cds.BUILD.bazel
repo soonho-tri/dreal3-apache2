@@ -11,6 +11,7 @@ cc_library(
         "src/*.cpp",
     ]),
     includes = ["."],
+    defines = ["CDS_DCAS_SUPPORT"],
     copts = ["-mcx16"],
     linkopts = select({
         "@dreal//tools:linux": ["-pthread"],
