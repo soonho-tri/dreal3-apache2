@@ -240,8 +240,11 @@ TEST_F(ApiTest, MinimizeCheckDeterministicOutput) {
   const Formula constraint{-10 <= x_ && x_ <= 10};
   const double delta{0.01};
 
+  std::cerr << "1\n";
   const auto result1 = Minimize(objective, constraint, delta);
+  std::cerr << "2\n";
   const auto result2 = Minimize(objective, constraint, delta);
+  std::cerr << "3\n";
   ASSERT_TRUE(result1);
   ASSERT_TRUE(result2);
   // ASSERT_EQ(*result1, *result2);

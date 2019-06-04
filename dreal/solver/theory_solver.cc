@@ -192,11 +192,11 @@ bool TheorySolver::CheckSat(const Box& box, const vector<Formula>& assertions) {
   if (contractor) {
     if (!icp_) {
       if (!contractor->include_forall() && config_.number_of_jobs() > 1) {
-        std::cerr << "PARALLEL: " << *contractor << std::endl;
+        // std::cerr << "PARALLEL: " << *contractor << std::endl;
         // std::cerr << box << std::endl;
         icp_ = make_unique<IcpParallel>(config_);
       } else {
-        std::cerr << "SEQ: " << *contractor << std::endl;
+        // std::cerr << "SEQ: " << *contractor << std::endl;
         // std::cerr << box << std::endl;
         // std::cerr << contractor->include_forall() << "\t"
         //           << config_.number_of_jobs() << std::endl;
