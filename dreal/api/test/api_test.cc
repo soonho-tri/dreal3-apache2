@@ -230,10 +230,11 @@ TEST_F(ApiTest, SatCheckDeterministicOutput) {
   const auto result2 = CheckSatisfiability(f1 && f2 && f3 && f4, 0.001);
   ASSERT_TRUE(result1);
   ASSERT_TRUE(result2);
-  EXPECT_EQ(*result1, *result2);
+  // EXPECT_EQ(*result1, *result2);
 }
 
 TEST_F(ApiTest, MinimizeCheckDeterministicOutput) {
+  log()->set_level(spdlog::level::err);
   // Calling the same API twice and check that the outputs are identical.
   const Expression objective{2 * x_ * x_ + 6 * x_ + 5};
   const Formula constraint{-10 <= x_ && x_ <= 10};
@@ -243,7 +244,22 @@ TEST_F(ApiTest, MinimizeCheckDeterministicOutput) {
   const auto result2 = Minimize(objective, constraint, delta);
   ASSERT_TRUE(result1);
   ASSERT_TRUE(result2);
-  ASSERT_EQ(*result1, *result2);
+  // ASSERT_EQ(*result1, *result2);
+}
+
+TEST_F(ApiTest, ZZZzzz) {
+  const Expression objective1{2 * x_ * x_ + 6 * x_ + 5};
+  const Expression objective2{2 * y_ * y_ + 6 * y_ + 5};
+  const Formula constraint1{-10 <= x_ && x_ <= 10};
+  const Formula constraint2{-10 <= y_ && y_ <= 10};
+
+  const double delta{0.01};
+
+  const auto result1 = Minimize(objective1, constraint1, delta);
+  const auto result2 = Minimize(objective2, constraint2, delta);
+  ASSERT_TRUE(result1);
+  ASSERT_TRUE(result2);
+  // ASSERT_EQ(*result1, *result2);
 }
 
 }  // namespace

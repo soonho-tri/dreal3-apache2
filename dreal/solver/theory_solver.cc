@@ -47,6 +47,13 @@ bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
     }
     const double old_i{old_iv[i].diam()};
     const double improvement{1 - new_i / old_i};
+    if (std::isnan(improvement)) {
+      std::cerr << "improv = nan:\n";
+      std::cerr << old_iv << "\n---------\n" << new_iv << "\n-------------\n";
+      std::cerr << old_iv[i] << "\n" << new_iv[i] << "\n";
+      std::cerr << old_i << "\n" << new_i << "\n";
+      std::cerr << "is new_iv empty? " << new_iv.is_empty() << "\n";
+    }
     DREAL_ASSERT(!std::isnan(improvement));
     if (improvement >= threshold) {
       return false;

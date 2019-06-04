@@ -88,6 +88,20 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
     stat.num_pruning_++;
   }
   bool changed{false};
+
+  if (!iv.is_empty()) {
+    for (int i = 1; i < iv.size(); ++i) {
+      if (iv[i].is_empty()) {
+        std::cerr << old_iv << "\n";
+        std::cerr << iv << "\n";
+        std::cerr << cs->box() << "\n";
+        std::cerr << f_ << "\n";
+        std::cerr << num_ctr_->f << "\n";
+        throw 1;
+      }
+    }
+  }
+
   // Update output.
   if (!is_inner) {
     if (iv.is_empty()) {
