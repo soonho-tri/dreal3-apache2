@@ -9,6 +9,7 @@
 #include "dreal/solver/context.h"
 #include "dreal/solver/filter_assertion.h"
 #include "dreal/solver/formula_evaluator.h"
+#include "dreal/solver/icp_parallel.h"
 #include "dreal/solver/icp_seq.h"
 #include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
@@ -24,9 +25,7 @@ using std::set;
 using std::vector;
 
 TheorySolver::TheorySolver(const Config& config)
-    : config_{config}, icp_{nullptr} {
-  icp_ = make_unique<IcpSeq>(config);
-}
+    : config_{config}, icp_{nullptr} {}
 
 namespace {
 bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
@@ -184,6 +183,19 @@ bool TheorySolver::CheckSat(const Box& box, const vector<Formula>& assertions) {
   const optional<Contractor> contractor{
       BuildContractor(assertions, &contractor_status)};
   if (contractor) {
+    if (!icp_) {
+      if (!contractor->include_forall() && config_.number_of_jobs() > 1) {
+        std::cerr << "PARALLEL: " << *contractor << std::endl;
+        // std::cerr << box << std::endl;
+        icp_ = make_unique<IcpParallel>(config_);
+      } else {
+        std::cerr << "SEQ: " << *contractor << std::endl;
+        // std::cerr << box << std::endl;
+        // std::cerr << contractor->include_forall() << "\t"
+        //           << config_.number_of_jobs() << std::endl;
+        icp_ = make_unique<IcpSeq>(config_);
+      }
+    }
     icp_->CheckSat(*contractor, BuildFormulaEvaluator(assertions),
                    &contractor_status);
     if (contractor_status.box().empty()) {
