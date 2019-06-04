@@ -58,6 +58,8 @@ ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
     for (const Variable& var : f_.GetFreeVariables()) {
       input.add(box.index(var));
     }
+  } else {
+    is_dummy_ = true;
   }
 }
 
@@ -120,5 +122,7 @@ ostream& ContractorIbexFwdbwd::display(ostream& os) const {
     return os << "IbexFwdbwd()";
   }
 }
+
+bool ContractorIbexFwdbwd::is_dummy() const { return is_dummy_; }
 
 }  // namespace dreal
