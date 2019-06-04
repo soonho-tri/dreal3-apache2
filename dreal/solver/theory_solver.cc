@@ -13,6 +13,7 @@
 #include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
 #include "dreal/util/stat.h"
+#include "dreal/util/timer.h"
 
 namespace dreal {
 
@@ -70,10 +71,14 @@ class TheorySolverStat : public Stat {
       using fmt::print;
       print(cout, "{:<45} @ {:<20} = {:>15}\n", "Total # of CheckSat",
             "Theory level", num_check_sat_);
+      print(cout, "{:<45} @ {:<20} = {:>15f} sec\n",
+            "Total time spent in CheckSat", "Theory level",
+            timer_check_sat_.seconds());
     }
   }
 
   int num_check_sat_{0};
+  Timer timer_check_sat_;
 };
 
 }  // namespace
@@ -169,6 +174,9 @@ vector<FormulaEvaluator> TheorySolver::BuildFormulaEvaluator(
 bool TheorySolver::CheckSat(const Box& box, const vector<Formula>& assertions) {
   static TheorySolverStat stat{DREAL_LOG_INFO_ENABLED};
   stat.num_check_sat_++;
+  TimerGuard check_sat_timer_guard(&stat.timer_check_sat_, stat.enabled(),
+                                   true /* start_timer */);
+
   DREAL_LOG_DEBUG("TheorySolver::CheckSat()");
   ContractorStatus contractor_status(box);
 
