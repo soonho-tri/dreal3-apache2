@@ -3,6 +3,8 @@
 #include <sstream>
 #include <utility>
 
+#include "ThreadPool/ThreadPool.h"
+
 #include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
 #include "dreal/util/math.h"
@@ -92,11 +94,9 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
   if (!iv.is_empty()) {
     for (int i = 1; i < iv.size(); ++i) {
       if (iv[i].is_empty()) {
-        std::cerr << old_iv << "\n";
-        std::cerr << iv << "\n";
-        std::cerr << cs->box() << "\n";
-        std::cerr << f_ << "\n";
-        std::cerr << num_ctr_->f << "\n";
+        DREAL_LOG_CRITICAL("Error {}:\n{}\n{}\n{}\n{}\n{}",
+                           ThreadPool::get_thread_id(), old_iv, iv, cs->box(),
+                           f_, num_ctr_->f);
         throw 1;
       }
     }
