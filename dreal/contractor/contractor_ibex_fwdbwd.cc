@@ -110,10 +110,6 @@ void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
   }
 }
 
-Box::Interval ContractorIbexFwdbwd::Evaluate(const Box& box) const {
-  return ctc_->ctr.f.eval(box.interval_vector());
-}
-
 ostream& ContractorIbexFwdbwd::display(ostream& os) const {
   if (ctc_) {
     const ibex::NumConstraint& num_ctr{ctc_->ctr};
