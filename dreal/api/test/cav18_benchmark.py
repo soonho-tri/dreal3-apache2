@@ -17,14 +17,17 @@ import sys
 
 local_optimization = False
 precision = 0.0001
+jobs = 1
 
 
 def make_config():
     global local_optimization
     global precision
+    global jobs
     config = Config()
     config.precision = precision
     config.use_local_optimization = local_optimization
+    config.number_of_jobs = jobs
     return config
 
 
@@ -475,10 +478,18 @@ def main():
         default=0.0001,
         type=float,
         help='Precision')
+    parser.add_argument(
+        '--jobs',
+        dest='jobs',
+        action='store',
+        default=1,
+        type=int,
+        help='number of jobs')
     parser.add_argument('unittest_args', nargs='*')
     args = parser.parse_args()
     local_optimization = args.local_optimization
     precision = args.precision
+    jobs = args.jobs
 
     sys.argv[1:] = args.unittest_args
     unittest.main(verbosity=0)
