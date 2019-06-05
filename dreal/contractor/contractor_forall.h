@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include "ThreadPool/ThreadPool.h"
+
 #include "dreal/contractor/contractor.h"
 #include "dreal/contractor/contractor_cell.h"
 #include "dreal/contractor/counterexample_refiner.h"
@@ -79,7 +81,7 @@ class ContractorForall : public ContractorCell {
     context_for_counterexample_.mutable_config().mutable_use_polytope() =
         config.use_polytope_in_forall();
     context_for_counterexample_.mutable_config().mutable_number_of_jobs() =
-        config.number_of_jobs();
+        /* config.number_of_jobs() */ 1;
     contractor_ = GenericContractorGenerator{}.Generate(
         get_quantified_formula(f_), ExtendBox(box, quantified_variables_),
         context_for_counterexample_.config());
@@ -173,8 +175,8 @@ class ContractorForall : public ContractorCell {
     Config& config_for_counterexample{
         context_for_counterexample_.mutable_config()};
     while (true) {
-      // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-      // when we build dReal python package.
+    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+    // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
       if (g_interrupted) {
         DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -215,7 +217,10 @@ class ContractorForall : public ContractorCell {
     cs->AddUsedConstraint(f_);
   }
 
-  std::ostream& display(std::ostream& os) const override { return os << f_; }
+  std::ostream& display(std::ostream& os) const override {
+    // FIXME
+    return os << f_;
+  }
 
  private:
   static Box ExtendBox(Box box, const Variables& vars) {
@@ -238,10 +243,88 @@ class ContractorForall : public ContractorCell {
 };
 
 template <typename ContextType>
+class ContractorForallMt : public ContractorCell {
+ public:
+  /// Deleted default constructor.
+  ContractorForallMt() = delete;
+
+  /// Constructs ForallMt contractor using @p f and @p box.
+  ContractorForallMt(Formula f, const Box& box, double epsilon,
+                     double inner_delta, const Config& config)
+      : ContractorCell{Contractor::Kind::FORALL,
+                       ibex::BitSet::empty(box.size()), config},
+        f_{std::move(f)},
+        epsilon_{epsilon},
+        inner_delta_{inner_delta},
+        config_{config},
+        ctc_ready_(config_.number_of_jobs(), 0),
+        ctcs_(ctc_ready_.size()) {
+    ContractorForall<ContextType>* const ctc{GetCtcOrCreate(box)};
+    DREAL_ASSERT(ctc);
+    // Build input.
+    mutable_input() = ctc->input();
+  }
+
+  /// Deleted copy constructor.
+  ContractorForallMt(const ContractorForallMt&) = delete;
+
+  /// Deleted move constructor.
+  ContractorForallMt(ContractorForallMt&&) = delete;
+
+  /// Deleted copy assign operator.
+  ContractorForallMt& operator=(const ContractorForallMt&) = delete;
+
+  /// Deleted move assign operator.
+  ContractorForallMt& operator=(ContractorForallMt&&) = delete;
+
+  ~ContractorForallMt() override = default;
+
+  void Prune(ContractorStatus* cs) const override {
+    ContractorForall<ContextType>* const ctc{GetCtcOrCreate(cs->box())};
+    DREAL_ASSERT(ctc);
+    return ctc->Prune(cs);
+    // TODO(soonho): propagate output.
+  }
+
+  std::ostream& display(std::ostream& os) const override {
+    // FIXME
+    return os << f_;
+  }
+
+ private:
+  ContractorForall<ContextType>* GetCtcOrCreate(const Box& box) const {
+    thread_local const int tid{ThreadPool::get_thread_id()};
+    if (ctc_ready_[tid]) {
+      return ctcs_[tid].get();
+    }
+    auto ctc_unique_ptr = std::make_unique<ContractorForall<ContextType>>(
+        f_, box, epsilon_, inner_delta_, config_);
+    ContractorForall<ContextType>* ctc{ctc_unique_ptr.get()};
+    DREAL_ASSERT(ctc);
+    ctcs_[tid] = std::move(ctc_unique_ptr);
+    ctc_ready_[tid] = 1;
+    return ctc;
+  }
+
+  const Formula f_;
+  const double epsilon_{};
+  const double inner_delta_{};
+  const Config config_{};
+
+  mutable std::vector<int> ctc_ready_;
+  mutable std::vector<std::unique_ptr<ContractorForall<ContextType>>> ctcs_;
+};
+
+template <typename ContextType>
 Contractor make_contractor_forall(Formula f, const Box& box, double epsilon,
                                   double inner_delta, const Config& config) {
-  return Contractor{std::make_shared<ContractorForall<ContextType>>(
-      std::move(f), box, epsilon, inner_delta, config)};
+  if (config.number_of_jobs() > 1) {
+    return Contractor{std::make_shared<ContractorForallMt<ContextType>>(
+        std::move(f), box, epsilon, inner_delta, config)};
+  } else {
+    return Contractor{std::make_shared<ContractorForall<ContextType>>(
+        std::move(f), box, epsilon, inner_delta, config)};
+  }
 }
 
 /// Converts @p contractor to ContractorForall.

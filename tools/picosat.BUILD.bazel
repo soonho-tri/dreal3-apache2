@@ -7,4 +7,5 @@ cc_library(
         "picosat.h",
     ],
     visibility = ["//visibility:public"],
+    copts = ["-O3"],
 )

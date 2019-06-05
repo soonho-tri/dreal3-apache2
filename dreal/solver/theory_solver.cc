@@ -164,8 +164,8 @@ vector<FormulaEvaluator> TheorySolver::BuildFormulaEvaluator(
     if (it == formula_evaluator_cache_.end()) {
       DREAL_LOG_DEBUG("TheorySolver::BuildFormulaEvaluator: {}", f);
       if (is_forall(f)) {
-        formula_evaluators.push_back(
-            make_forall_formula_evaluator(f, epsilon, inner_delta));
+        formula_evaluators.push_back(make_forall_formula_evaluator(
+            f, epsilon, inner_delta, config_.number_of_jobs()));
       } else {
         formula_evaluators.push_back(make_relational_formula_evaluator(f));
       }
@@ -191,12 +191,12 @@ bool TheorySolver::CheckSat(const Box& box, const vector<Formula>& assertions) {
       BuildContractor(assertions, &contractor_status)};
   if (contractor) {
     if (!icp_) {
-      if (!contractor->include_forall() && config_.number_of_jobs() > 1) {
-        // std::cerr << "PARALLEL: " << *contractor << std::endl;
+      if (config_.number_of_jobs() > 1) {
+        std::cerr << "PARALLEL: " << *contractor << std::endl;
         // std::cerr << box << std::endl;
         icp_ = make_unique<IcpParallel>(config_);
       } else {
-        // std::cerr << "SEQ: " << *contractor << std::endl;
+        std::cerr << "SEQ: " << *contractor << std::endl;
         // std::cerr << box << std::endl;
         // std::cerr << contractor->include_forall() << "\t"
         //           << config_.number_of_jobs() << std::endl;
