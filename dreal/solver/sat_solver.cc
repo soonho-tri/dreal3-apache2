@@ -1,5 +1,6 @@
 #include "dreal/solver/sat_solver.h"
 
+#include <atomic>
 #include <ostream>
 #include <utility>
 
@@ -15,7 +16,12 @@ using std::cout;
 using std::set;
 using std::vector;
 
+namespace {
+std::atomic<int> g_picosat_cnt{0};
+}
+
 SatSolver::SatSolver(const Config& config) : sat_{picosat_init()} {
+  std::cerr << "PICOSAT INIT " << g_picosat_cnt++ << "\n";
   // Enable partial checks via picosat_deref_partial. See the call-site in
   // SatSolver::CheckSat().
   picosat_save_original_clauses(sat_);
@@ -34,7 +40,10 @@ SatSolver::SatSolver(const Config& config, const vector<Formula>& clauses)
   AddClauses(clauses);
 }
 
-SatSolver::~SatSolver() { picosat_reset(sat_); }
+SatSolver::~SatSolver() {
+  picosat_reset(sat_);
+  std::cerr << "PICOSAT RESET " << --g_picosat_cnt << "\n";
+}
 
 void SatSolver::AddFormula(const Formula& f) {
   DREAL_LOG_DEBUG("SatSolver::AddFormula({})", f);

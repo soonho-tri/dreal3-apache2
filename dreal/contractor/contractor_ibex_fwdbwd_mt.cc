@@ -21,7 +21,7 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
                      ibex::BitSet::empty(box.size()), config},
       f_{std::move(f)},
       config_{config},
-      ctc_ready_(config_.number_of_jobs() * 2, 0),
+      ctc_ready_(config_.number_of_jobs(), 0),
       ctcs_(ctc_ready_.size()) {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
   ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(box)};
