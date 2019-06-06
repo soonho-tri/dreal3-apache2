@@ -21,34 +21,27 @@ ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
                      ibex::BitSet::empty(box.size()), config},
       formulas_{std::move(formulas)},
       config_{config},
-      ctc_ready_(config_.number_of_jobs(), 0),
-      ctcs_(ctc_ready_.size()) {
+      ctcs_(config_.number_of_jobs()) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
-  ContractorIbexPolytope* const ctc{GetCtcOrCreate(box)};
-  DREAL_ASSERT(ctc);
-  // Build input.
-  mutable_input() = ctc->input();
 
-  is_dummy_ = ctc->is_dummy();
+  for (size_t i = 0; i < ctcs_.size(); ++i) {
+    auto ctc_unique_ptr =
+        make_unique<ContractorIbexPolytope>(formulas_, box, config_);
+    ctcs_[i] = std::move(ctc_unique_ptr);
+  }
+
+  // Build input.
+  mutable_input() = ctcs_[0]->input();
+  is_dummy_ = ctcs_[0]->is_dummy();
 }
 
-ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
-    const Box& box) const {
+ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtc() const {
   thread_local const int tid{ThreadPool::get_thread_id()};
-  if (ctc_ready_[tid]) {
-    return ctcs_[tid].get();
-  }
-  auto ctc_unique_ptr =
-      make_unique<ContractorIbexPolytope>(formulas_, box, config_);
-  ContractorIbexPolytope* ctc = ctc_unique_ptr.get();
-  DREAL_ASSERT(ctc);
-  ctcs_[tid] = std::move(ctc_unique_ptr);
-  ctc_ready_[tid] = 1;
-  return ctc;
+  return ctcs_[tid].get();
 }
 
 void ContractorIbexPolytopeMt::Prune(ContractorStatus* cs) const {
-  ContractorIbexPolytope* const ctc{GetCtcOrCreate(cs->box())};
+  ContractorIbexPolytope* const ctc{GetCtc()};
   DREAL_ASSERT(ctc && !is_dummy_);
   return ctc->Prune(cs);
 }

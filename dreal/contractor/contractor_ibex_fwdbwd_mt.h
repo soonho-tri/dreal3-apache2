@@ -44,13 +44,12 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
   bool is_dummy() const;
 
  private:
-  ContractorIbexFwdbwd* GetCtcOrCreate(const Box& box) const;
+  ContractorIbexFwdbwd* GetCtc() const;
 
   const Formula f_;
   bool is_dummy_{false};
   const Config config_;
 
-  mutable std::vector<int> ctc_ready_;
   mutable std::vector<std::unique_ptr<ContractorIbexFwdbwd>> ctcs_;
 };
 

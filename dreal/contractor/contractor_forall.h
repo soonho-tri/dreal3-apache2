@@ -254,12 +254,13 @@ class ContractorForallMt : public ContractorCell {
       : ContractorCell{Contractor::Kind::FORALL,
                        ibex::BitSet::empty(box.size()), config},
         f_{std::move(f)},
-        epsilon_{epsilon},
-        inner_delta_{inner_delta},
-        config_{config},
-        ctc_ready_(config_.number_of_jobs(), 0),
-        ctcs_(ctc_ready_.size()) {
-    ContractorForall<ContextType>* const ctc{GetCtcOrCreate(box)};
+        ctcs_(config.number_of_jobs()) {
+    for (size_t i = 0; i < ctcs_.size(); ++i) {
+      auto ctc_unique_ptr = std::make_unique<ContractorForall<ContextType>>(
+          f_, box, epsilon, inner_delta, config);
+      ctcs_[i] = std::move(ctc_unique_ptr);
+    }
+    ContractorForall<ContextType>* const ctc{ctcs_[0].get()};
     DREAL_ASSERT(ctc);
     // Build input.
     mutable_input() = ctc->input();
@@ -293,24 +294,9 @@ class ContractorForallMt : public ContractorCell {
  private:
   ContractorForall<ContextType>* GetCtcOrCreate(const Box& box) const {
     thread_local const int tid{ThreadPool::get_thread_id()};
-    if (ctc_ready_[tid]) {
-      return ctcs_[tid].get();
-    }
-    auto ctc_unique_ptr = std::make_unique<ContractorForall<ContextType>>(
-        f_, box, epsilon_, inner_delta_, config_);
-    ContractorForall<ContextType>* ctc{ctc_unique_ptr.get()};
-    DREAL_ASSERT(ctc);
-    ctcs_[tid] = std::move(ctc_unique_ptr);
-    ctc_ready_[tid] = 1;
-    return ctc;
+    return ctcs_[tid].get();
   }
-
   const Formula f_;
-  const double epsilon_{};
-  const double inner_delta_{};
-  const Config config_{};
-
-  mutable std::vector<int> ctc_ready_;
   mutable std::vector<std::unique_ptr<ContractorForall<ContextType>>> ctcs_;
 };
 

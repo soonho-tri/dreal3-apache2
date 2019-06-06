@@ -21,34 +21,30 @@ ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt(Formula f, const Box& box,
                      ibex::BitSet::empty(box.size()), config},
       f_{std::move(f)},
       config_{config},
-      ctc_ready_(config_.number_of_jobs(), 0),
-      ctcs_(ctc_ready_.size()) {
+      ctcs_(config_.number_of_jobs()) {
   DREAL_LOG_DEBUG("ContractorIbexFwdbwdMt::ContractorIbexFwdbwdMt");
-  ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(box)};
-  DREAL_ASSERT(ctc);
-  // Build input.
-  mutable_input() = ctc->input();
 
-  is_dummy_ = ctc->is_dummy();
+  for (size_t i = 0; i < ctcs_.size(); ++i) {
+    auto ctc_unique_ptr = make_unique<ContractorIbexFwdbwd>(f_, box, config_);
+    ContractorIbexFwdbwd* ctc{ctc_unique_ptr.get()};
+    DREAL_ASSERT(ctc);
+    ctcs_[i] = std::move(ctc_unique_ptr);
+  }
+
+  // Build input.
+  mutable_input() = ctcs_[0]->input();
+
+  is_dummy_ = ctcs_[0]->is_dummy();
 }
 
-ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtcOrCreate(
-    const Box& box) const {
+ContractorIbexFwdbwd* ContractorIbexFwdbwdMt::GetCtc() const {
   thread_local const int tid{ThreadPool::get_thread_id()};
-  if (ctc_ready_[tid]) {
-    return ctcs_[tid].get();
-  }
-  auto ctc_unique_ptr = make_unique<ContractorIbexFwdbwd>(f_, box, config_);
-  ContractorIbexFwdbwd* ctc{ctc_unique_ptr.get()};
-  DREAL_ASSERT(ctc);
-  ctcs_[tid] = std::move(ctc_unique_ptr);
-  ctc_ready_[tid] = 1;
-  return ctc;
+  return ctcs_[tid].get();
 }
 
 void ContractorIbexFwdbwdMt::Prune(ContractorStatus* cs) const {
   DREAL_ASSERT(!is_dummy_);
-  ContractorIbexFwdbwd* const ctc{GetCtcOrCreate(cs->box())};
+  ContractorIbexFwdbwd* const ctc{GetCtc()};
   DREAL_ASSERT(ctc);
   return ctc->Prune(cs);
 }

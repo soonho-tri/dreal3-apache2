@@ -43,13 +43,12 @@ class ContractorIbexPolytopeMt : public ContractorCell {
   bool is_dummy() const;
 
  private:
-  ContractorIbexPolytope* GetCtcOrCreate(const Box& box) const;
+  ContractorIbexPolytope* GetCtc() const;
   bool is_dummy_{false};
 
   const std::vector<Formula> formulas_;
   const Config config_;
 
-  mutable std::vector<int> ctc_ready_;
   mutable std::vector<std::unique_ptr<ContractorIbexPolytope>> ctcs_;
 };
 
