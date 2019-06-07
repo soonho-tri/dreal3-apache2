@@ -26,6 +26,7 @@ using std::vector;
 
 TheorySolver::TheorySolver(const Config& config)
     : config_{config}, icp_{nullptr} {
+  std::cerr << "THEORY_SOLVER IS CREATED\n";
   if (config_.number_of_jobs() > 1) {
     icp_ = make_unique<IcpParallel>(config_);
   } else {

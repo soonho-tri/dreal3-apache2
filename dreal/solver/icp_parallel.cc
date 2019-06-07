@@ -75,8 +75,8 @@ void Worker(const Contractor& contractor, const Config& config,
 
   while ((*found_delta_sat == -1) &&
          (number_of_boxes->load(std::memory_order_acquire) > 0)) {
-  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-  // when we build dReal python package.
+    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+    // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -170,7 +170,7 @@ IcpParallel::IcpParallel(const Config& config)
     : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs() - 1)} {
   results_.reserve(config.number_of_jobs() - 1);
   status_vector_.reserve(config.number_of_jobs());
-  // std::cerr << "IcpParallel()\n";
+  std::cerr << "IcpParallel()\n";
 }
 
 bool IcpParallel::CheckSat(const Contractor& contractor,

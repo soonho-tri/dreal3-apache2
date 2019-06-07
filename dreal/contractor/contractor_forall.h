@@ -67,22 +67,12 @@ class ContractorForall : public ContractorCell {
             DeltaStrengthen(!get_quantified_formula(f_), epsilon), true)},
         contractor_{config /* This one will be updated anyway. */},
         context_for_counterexample_{config} {
-    DREAL_ASSERT(epsilon > 0.0);
-    DREAL_ASSERT(inner_delta > 0.0);
-    DREAL_ASSERT(config.precision() > epsilon);
-    DREAL_ASSERT(epsilon > inner_delta);
     DREAL_ASSERT(!is_false(strengthend_negated_nested_f_));
 
     set_include_forall();
 
+    // Setup context and the contractor for finding counterexamples.
     // Setup context:
-    // 0. Setup context, config, and the contractor for finding counterexamples.
-    context_for_counterexample_.mutable_config().mutable_precision() =
-        inner_delta;
-    context_for_counterexample_.mutable_config().mutable_use_polytope() =
-        config.use_polytope_in_forall();
-    context_for_counterexample_.mutable_config().mutable_number_of_jobs() =
-        /* config.number_of_jobs() */ 1;
     contractor_ = GenericContractorGenerator{}.Generate(
         get_quantified_formula(f_), ExtendBox(box, quantified_variables_),
         context_for_counterexample_.config());
@@ -293,7 +283,8 @@ class ContractorForallMt : public ContractorCell {
  private:
   ContractorForall<ContextType>* GetCtcOrCreate(const Box& box) const {
     thread_local const int tid{ThreadPool::get_thread_id()};
-    DREAL_LOG_CRITICAL("FORALL EVAL TID = {} \t {}", tid);
+    DREAL_LOG_CRITICAL("GetCtcOrCreate -- FORALL CTC TID = {} \t {}", tid,
+                       ctcs_.size());
 
     if (ctc_ready_[tid]) {
       return ctcs_[tid].get();
@@ -318,7 +309,16 @@ class ContractorForallMt : public ContractorCell {
 
 template <typename ContextType>
 Contractor make_contractor_forall(Formula f, const Box& box, double epsilon,
-                                  double inner_delta, const Config& config) {
+                                  double inner_delta, Config config) {
+  // Setup context, config, and the contractor for finding counterexamples.
+  DREAL_ASSERT(epsilon > 0.0);
+  DREAL_ASSERT(inner_delta > 0.0);
+  DREAL_ASSERT(config.precision() > epsilon);
+  DREAL_ASSERT(epsilon > inner_delta);
+  config.mutable_precision() = inner_delta;
+  config.mutable_use_polytope() = config.use_polytope_in_forall();
+  config.mutable_number_of_jobs() = /* config.number_of_jobs() */ 1;
+
   if (config.number_of_jobs() > 1) {
     return Contractor{std::make_shared<ContractorForallMt<ContextType>>(
         std::move(f), box, epsilon, inner_delta, config)};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -129,5 +130,6 @@ class Context {
   class Impl;
 
   std::unique_ptr<Impl> impl_;
+  std::atomic<int> use_count_{0};
 };
 }  // namespace dreal

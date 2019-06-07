@@ -60,20 +60,23 @@ ForallFormulaEvaluator::ForallFormulaEvaluator(Formula f, const double epsilon,
                                                const double delta,
                                                const int number_of_jobs)
     : FormulaEvaluatorCell{std::move(f)},
-      evaluators_{BuildFormulaEvaluators(formula())},
-      contexts_(number_of_jobs) {
+      evaluators_{BuildFormulaEvaluators(formula())} {
   DREAL_ASSERT(is_forall(formula()));
   DREAL_LOG_DEBUG("ForallFormulaEvaluator({})", formula());
 
+  Config config;
+  config.mutable_precision() = delta;
+  contexts_.reserve(number_of_jobs);
   for (int i = 0; i < number_of_jobs; ++i) {
-    contexts_[i].mutable_config().mutable_precision() = delta;
+    contexts_.emplace_back(config);
+    Context& context{contexts_[i]};
     for (const Variable& exist_var : formula().GetFreeVariables()) {
-      contexts_[i].DeclareVariable(exist_var);
+      context.DeclareVariable(exist_var);
     }
     for (const Variable& forall_var : get_quantified_variables(formula())) {
-      contexts_[i].DeclareVariable(forall_var);
+      context.DeclareVariable(forall_var);
     }
-    contexts_[i].Assert(
+    context.Assert(
         DeltaStrengthen(!get_quantified_formula(formula()), epsilon));
   }
 }

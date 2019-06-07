@@ -13,18 +13,37 @@ using std::vector;
 
 namespace dreal {
 
-Context::Context() : Context{Config{}} {}
+Context::Context() : Context{Config{}} {
+  std::cerr << "Context Created: " << config().number_of_jobs() << "\n";
+}
 
-Context::Context(Context&& context) noexcept
-    : impl_{std::move(context.impl_)} {}
+Context::Context(Context&& context) noexcept : impl_{std::move(context.impl_)} {
+  // std::cerr << "Context Created MOVED: " << config().number_of_jobs() <<
+  // "\n";
+}
 
 Context::~Context() = default;
 
-Context::Context(Config config) : impl_{make_unique<Impl>(config)} {}
+Context::Context(Config config) : impl_{make_unique<Impl>(config)} {
+  if (config.number_of_jobs() > 1) {
+    std::cerr << "Context Created with config: Parallel "
+              << config.number_of_jobs() << "\n";
+  } else {
+    std::cerr << "Context Created with config: SEQ\n";
+  }
+}
 
 void Context::Assert(const Formula& f) { impl_->Assert(f); }
 
-optional<Box> Context::CheckSat() { return impl_->CheckSat(); }
+optional<Box> Context::CheckSat() {
+  ++use_count_;
+  if (use_count_ > 1) {
+    throw 1;
+  }
+  const auto result = impl_->CheckSat();
+  --use_count_;
+  return result;
+}
 
 void Context::DeclareVariable(const Variable& v, const bool is_model_variable) {
   impl_->DeclareVariable(v, is_model_variable);

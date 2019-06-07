@@ -102,7 +102,7 @@ class Contractor {
   template <typename ContextType>
   friend Contractor make_contractor_forall(Formula f, const Box& box,
                                            double epsilon, double inner_delta,
-                                           const Config& config);
+                                           Config config);
   friend Contractor make_contractor_join(std::vector<Contractor> vec,
                                          const Config& config);
 
@@ -201,7 +201,7 @@ Contractor make_contractor_join(std::vector<Contractor> vec,
 /// @see ContractorForall.
 template <typename ContextType>
 Contractor make_contractor_forall(Formula f, const Box& box, double epsilon,
-                                  double inner_delta, const Config& config);
+                                  double inner_delta, Config config);
 
 std::ostream& operator<<(std::ostream& os, const Contractor& ctc);
 

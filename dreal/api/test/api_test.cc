@@ -114,6 +114,7 @@ TEST_F(ApiTest, CheckSatisfiabilityUnsat) {
 }
 
 TEST_F(ApiTest, Minimize1) {
+  log()->set_level(spdlog::level::critical);
   // minimize 2x² + 6x + 5 s.t. -10 ≤ x ≤ 10
   const Expression objective{2 * x_ * x_ + 6 * x_ + 5};
   const Formula constraint{-10 <= x_ && x_ <= 10};
@@ -234,7 +235,6 @@ TEST_F(ApiTest, SatCheckDeterministicOutput) {
 }
 
 TEST_F(ApiTest, MinimizeCheckDeterministicOutput) {
-  log()->set_level(spdlog::level::critical);
   // Calling the same API twice and check that the outputs are identical.
   const Expression objective{2 * x_ * x_ + 6 * x_ + 5};
   const Formula constraint{-10 <= x_ && x_ <= 10};
