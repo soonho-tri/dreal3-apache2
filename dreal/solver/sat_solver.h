@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <set>
 #include <utility>
@@ -122,6 +123,8 @@ class SatSolver {
   ///
   /// TODO(soonho): Remove this hack when it's not needed.
   bool has_picosat_pop_used_{false};
+
+  std::atomic<int> use_count_{0};
 };
 
 }  // namespace dreal

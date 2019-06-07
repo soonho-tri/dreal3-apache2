@@ -112,6 +112,11 @@ class SatSolverStat : public Stat {
 }  // namespace
 
 optional<SatSolver::Model> SatSolver::CheckSat() {
+  ++use_count_;
+  if (use_count_ > 1) {
+    std::cerr << "NONONO\n";
+    throw 1;
+  }
   static SatSolverStat stat{DREAL_LOG_INFO_ENABLED};
   DREAL_LOG_DEBUG("SatSolver::CheckSat(#vars = {}, #clauses = {})",
                   picosat_variables(sat_),
@@ -160,14 +165,17 @@ optional<SatSolver::Model> SatSolver::CheckSat() {
       }
     }
     DREAL_LOG_DEBUG("SatSolver::CheckSat() Found a model.");
+    --use_count_;
     return model;
   } else if (ret == PICOSAT_UNSATISFIABLE) {
     DREAL_LOG_DEBUG("SatSolver::CheckSat() No solution.");
     // UNSAT Case.
+    --use_count_;
     return {};
   } else {
     DREAL_ASSERT(ret == PICOSAT_UNKNOWN);
     DREAL_LOG_CRITICAL("PICOSAT returns PICOSAT_UNKNOWN.");
+    --use_count_;
     throw DREAL_RUNTIME_ERROR("PICOSAT returns PICOSAT_UNKNOWN.");
   }
 }

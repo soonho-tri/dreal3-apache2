@@ -67,4 +67,5 @@ class ForallFormulaEvaluator : public FormulaEvaluatorCell {
   std::vector<RelationalFormulaEvaluator> evaluators_;
   mutable std::vector<Context> contexts_;
 };
+
 }  // namespace dreal

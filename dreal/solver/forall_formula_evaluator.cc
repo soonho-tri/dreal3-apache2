@@ -51,6 +51,8 @@ vector<RelationalFormulaEvaluator> BuildFormulaEvaluators(const Formula& f) {
 
 Context& ForallFormulaEvaluator::GetContext() const {
   thread_local const int tid{ThreadPool::get_thread_id()};
+  DREAL_LOG_CRITICAL("FORALL EVAL TID = {} \t {}", tid, contexts_.size());
+  DREAL_ASSERT(0 <= tid && tid <= static_cast<int>(contexts_.size()));
   return contexts_[tid];
 }
 
