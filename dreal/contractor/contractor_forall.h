@@ -293,7 +293,7 @@ class ContractorForallMt : public ContractorCell {
  private:
   ContractorForall<ContextType>* GetCtcOrCreate(const Box& box) const {
     thread_local const int tid{ThreadPool::get_thread_id()};
-    DREAL_LOG_CRITICAL("FORALL EVAL TID = {} \t {}", tid, contexts_.size());
+    DREAL_LOG_CRITICAL("FORALL EVAL TID = {} \t {}", tid);
 
     if (ctc_ready_[tid]) {
       return ctcs_[tid].get();
