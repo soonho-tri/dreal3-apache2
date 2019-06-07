@@ -1,5 +1,6 @@
 #include "dreal/solver/sat_solver.h"
 
+#include <atomic>
 #include <ostream>
 #include <utility>
 
@@ -15,7 +16,12 @@ using std::cout;
 using std::set;
 using std::vector;
 
+namespace {
+std::atomic<int> g_picosat_cnt{0};
+}
+
 SatSolver::SatSolver(const Config& config) : sat_{picosat_init()} {
+  std::cerr << "PICOSAT INIT " << g_picosat_cnt++ << "\n";
   // Enable partial checks via picosat_deref_partial. See the call-site in
   // SatSolver::CheckSat().
   picosat_save_original_clauses(sat_);
@@ -34,7 +40,10 @@ SatSolver::SatSolver(const Config& config, const vector<Formula>& clauses)
   AddClauses(clauses);
 }
 
-SatSolver::~SatSolver() { picosat_reset(sat_); }
+SatSolver::~SatSolver() {
+  picosat_reset(sat_);
+  std::cerr << "PICOSAT RESET " << --g_picosat_cnt << "\n";
+}
 
 void SatSolver::AddFormula(const Formula& f) {
   DREAL_LOG_DEBUG("SatSolver::AddFormula({})", f);
@@ -103,6 +112,11 @@ class SatSolverStat : public Stat {
 }  // namespace
 
 optional<SatSolver::Model> SatSolver::CheckSat() {
+  ++use_count_;
+  if (use_count_ > 1) {
+    std::cerr << "SAT SOLVER CHECK SAT DOUBLE USED\n";
+    throw 1;
+  }
   static SatSolverStat stat{DREAL_LOG_INFO_ENABLED};
   DREAL_LOG_DEBUG("SatSolver::CheckSat(#vars = {}, #clauses = {})",
                   picosat_variables(sat_),
@@ -151,14 +165,17 @@ optional<SatSolver::Model> SatSolver::CheckSat() {
       }
     }
     DREAL_LOG_DEBUG("SatSolver::CheckSat() Found a model.");
+    --use_count_;
     return model;
   } else if (ret == PICOSAT_UNSATISFIABLE) {
     DREAL_LOG_DEBUG("SatSolver::CheckSat() No solution.");
     // UNSAT Case.
+    --use_count_;
     return {};
   } else {
     DREAL_ASSERT(ret == PICOSAT_UNKNOWN);
     DREAL_LOG_CRITICAL("PICOSAT returns PICOSAT_UNKNOWN.");
+    --use_count_;
     throw DREAL_RUNTIME_ERROR("PICOSAT returns PICOSAT_UNKNOWN.");
   }
 }

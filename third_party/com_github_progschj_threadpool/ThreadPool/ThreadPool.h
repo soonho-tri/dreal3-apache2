@@ -11,6 +11,8 @@
 #include <thread>
 #include <vector>
 
+#include <iostream>
+
 class ThreadPool {
  public:
   ThreadPool(size_t);
@@ -21,6 +23,7 @@ class ThreadPool {
 
   static int get_thread_id() {
     thread_local const int tid{global_thread_id_index_++};
+    // std::cerr << std::this_thread::get_id() << " " << tid << "\n";
     return tid;
   }
 
@@ -58,6 +61,9 @@ inline ThreadPool::ThreadPool(size_t threads) : stop(false) {
         task();
       }
     });
+
+  // To make sure that the thread that created this pool gets the ID 0.
+  std::cerr << "POOL INIT: " << get_thread_id() << "\n";
 }
 
 // add new work item to the pool
@@ -91,6 +97,7 @@ inline ThreadPool::~ThreadPool() {
   condition.notify_all();
   for (std::thread& worker : workers) worker.join();
   global_thread_id_index_ = 0;
+  std::cerr << "Pool DESTROYED.\n";
 }
 
 #endif

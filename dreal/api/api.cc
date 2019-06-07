@@ -42,11 +42,13 @@ optional<Box> Minimize(const Expression& objective, const Formula& constraint,
                        double delta) {
   Config config;
   config.mutable_precision() = delta;
+  config.mutable_number_of_jobs() = 4;
   return Minimize(objective, constraint, config);
 }
 
 optional<Box> Minimize(const Expression& objective, const Formula& constraint,
                        Config config) {
+  config.mutable_number_of_jobs() = 4;
   Context context{config};
   for (const Variable& v : constraint.GetFreeVariables()) {
     context.DeclareVariable(v);
@@ -63,11 +65,13 @@ bool Minimize(const Expression& objective, const Formula& constraint,
               const double delta, Box* const box) {
   Config config;
   config.mutable_precision() = delta;
+  config.mutable_number_of_jobs() = 4;
   return Minimize(objective, constraint, config, box);
 }
 
 bool Minimize(const Expression& objective, const Formula& constraint,
               Config config, Box* const box) {
+  config.mutable_number_of_jobs() = 4;
   const optional<Box> result{Minimize(objective, constraint, config)};
   if (result) {
     DREAL_ASSERT(box);
