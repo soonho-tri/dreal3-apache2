@@ -22,8 +22,8 @@ class ThreadPool {
   ~ThreadPool();
 
   static int get_thread_id() {
-    thread_local const int tid{global_thread_id_index_++};
-    // std::cerr << std::this_thread::get_id() << " " << tid << "\n";
+    static std::atomic<int> gid{0};
+    const int tid{gid++};
     return tid;
   }
 

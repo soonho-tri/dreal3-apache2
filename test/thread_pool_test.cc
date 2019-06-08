@@ -4,14 +4,25 @@
 
 #include <gtest/gtest.h>
 
-// From https://github.com/progschj/ThreadPool/blob/master/README.md
+void Worker() { std::cerr << ThreadPool::get_thread_id(); }
+
+void Doit() {
+  constexpr int number_of_threads = 8;
+  ThreadPool pool(number_of_threads);
+
+  std::vector<std::future<void>> results;
+
+  for (int i = 0; i < number_of_threads; ++i) {
+    results.push_back(pool.enqueue(Worker));
+  }
+  Worker();
+
+  for (int i = 0; i < number_of_threads; i++) {
+    results[i].get();
+  }
+}
+
 GTEST_TEST(THREAD_POOL_TEST, TEST) {
-  // create thread pool with 2 worker threads
-  ThreadPool pool(2);
-
-  // enqueue and store future
-  auto result = pool.enqueue([](int answer) { return answer; }, 42);
-
-  // get result from future
-  EXPECT_EQ(result.get(), 42);
+  Doit();
+  Doit();
 }
