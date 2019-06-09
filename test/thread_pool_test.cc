@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-void Worker() { std::cerr << ThreadPool::get_thread_id(); }
+void Worker(ThreadPool* p) { std::cerr << p->get_tid(); }
 
 void Doit() {
   constexpr int number_of_threads = 8;
@@ -13,9 +13,9 @@ void Doit() {
   std::vector<std::future<void>> results;
 
   for (int i = 0; i < number_of_threads; ++i) {
-    results.push_back(pool.enqueue(Worker));
+    results.push_back(pool.enqueue(Worker, &pool));
   }
-  Worker();
+  Worker(&pool);
 
   for (int i = 0; i < number_of_threads; i++) {
     results[i].get();

@@ -27,6 +27,11 @@ class ThreadPool {
     return tid;
   }
 
+  int get_tid() {
+    thread_local const int id{gid_++};
+    return id;
+  }
+
  private:
   // need to keep track of threads so we can join them
   std::vector<std::thread> workers;
@@ -38,6 +43,8 @@ class ThreadPool {
   std::condition_variable condition;
 
   static std::atomic<int> global_thread_id_index_;
+
+  std::atomic<int> gid_{0};
 
   bool stop;
 };
