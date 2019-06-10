@@ -1,5 +1,6 @@
 #include "dreal/solver/theory_solver.h"
 
+#include <atomic>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -61,8 +62,8 @@ bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
 class TheorySolverStat : public Stat {
  public:
   explicit TheorySolverStat(const bool enabled) : Stat{enabled} {}
-  TheorySolverStat(const TheorySolverStat&) = default;
-  TheorySolverStat(TheorySolverStat&&) = default;
+  TheorySolverStat(const TheorySolverStat&) = delete;
+  TheorySolverStat(TheorySolverStat&&) = delete;
   TheorySolverStat& operator=(const TheorySolverStat&) = delete;
   TheorySolverStat& operator=(TheorySolverStat&&) = delete;
   ~TheorySolverStat() override {
@@ -76,8 +77,12 @@ class TheorySolverStat : public Stat {
     }
   }
 
-  int num_check_sat_{0};
+  void increase_num_check_sat() { increase(&num_check_sat_); }
+
   Timer timer_check_sat_;
+
+ private:
+  std::atomic<int> num_check_sat_{0};
 };
 
 }  // namespace
@@ -172,7 +177,7 @@ vector<FormulaEvaluator> TheorySolver::BuildFormulaEvaluator(
 
 bool TheorySolver::CheckSat(const Box& box, const vector<Formula>& assertions) {
   static TheorySolverStat stat{DREAL_LOG_INFO_ENABLED};
-  stat.num_check_sat_++;
+  stat.increase_num_check_sat();
   TimerGuard check_sat_timer_guard(&stat.timer_check_sat_, stat.enabled(),
                                    true /* start_timer */);
 
