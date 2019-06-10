@@ -111,7 +111,7 @@ void MainProgram::AddOptions() {
            "Use local optimization algorithm for exist-forall problems.\n",
            "--local-optimization");
 
-  opt_.add("1" /* Default */, false /* Required? */,
+  opt_.add("4" /* Default */, false /* Required? */,
            1 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */, "Number of jobs.\n",
            "--jobs", "-j");
