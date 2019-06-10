@@ -22,56 +22,6 @@ namespace dreal {
 
 namespace {
 
-// Returns -1 if it detects that the interval vector is non-bisectable.
-int FindMaxDiamIdx(const Box& box) {
-  double max_diam{0.0};
-  int max_diam_idx{-1};
-  for (int i{0}; i < box.size(); ++i) {
-    const Box::Interval& iv_i{box[i]};
-    const double diam_i{iv_i.diam()};
-    if (diam_i > max_diam && iv_i.is_bisectable()) {
-      max_diam = diam_i;
-      max_diam_idx = i;
-    }
-  }
-  return max_diam_idx;
-}
-
-vector<Box> DoubleUp(const vector<Box>& boxes, const int n) {
-  DREAL_ASSERT(boxes.size() <= static_cast<unsigned>(n));
-  vector<Box> ret;  // Returns this.
-  ret.reserve(n);
-  vector<Box>::size_type i{0};
-  for (; i < n - boxes.size() && i < boxes.size(); ++i) {
-    const Box& box{boxes[i]};
-    const int max_diam_idx{FindMaxDiamIdx(box)};
-    if (max_diam_idx >= 0) {
-      const auto bisect_result = box.bisect(max_diam_idx);
-      ret.push_back(bisect_result.first);
-      ret.push_back(bisect_result.second);
-    } else {
-      ret.push_back(box);
-    }
-  }
-  for (; i < boxes.size(); ++i) {
-    ret.push_back(boxes[i]);
-  }
-  return ret;
-}
-
-vector<Box> FillUp(const Box& box, int n) {
-  vector<Box> ret{box};  // Returns this.
-  while (ret.size() < static_cast<unsigned>(n)) {
-    vector<Box> new_ones{DoubleUp(ret, n)};
-    if (new_ones.size() == ret.size()) {
-      break;
-    } else {
-      ret = new_ones;
-    }
-  }
-  return ret;
-}
-
 bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
                     const int number_of_jobs, Box* const box,
                     Stack<Box>* const global_stack,
@@ -91,20 +41,8 @@ bool ParallelBranch(const ibex::BitSet& bitset, const bool stack_left_box_first,
     }
     const Box& box1{*box1_ptr};
     const Box& box2{*box2_ptr};
-
-    // TODO(soonho): FIXME. Decision #1: when to add to the global stack or a
-    // local_stack?
-    // if (*number_of_boxes < number_of_jobs / 4) {
-    // if (global_stack->empty()) {
-    //   std::cerr << "F";
-    //   for (const Box& box : FillUp(box1, number_of_jobs / 4)) {
-    //     number_of_boxes->fetch_add(1, std::memory_order_relaxed);
-    //     global_stack->push(box);
-    //   }
-    // } else {
     number_of_boxes->fetch_add(1, std::memory_order_relaxed);
     global_stack->push(box1);
-    // }
     *box = box2;
     return true;
   }
@@ -137,8 +75,8 @@ void Worker(const Contractor& contractor, const Config& config,
 
   while ((*found_delta_sat == -1) &&
          (number_of_boxes->load(std::memory_order_acquire) > 0)) {
-  // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
-  // when we build dReal python package.
+    // Note that 'DREAL_CHECK_INTERRUPT' is only defined in setup.py,
+    // when we build dReal python package.
 #ifdef DREAL_CHECK_INTERRUPT
     if (g_interrupted) {
       DREAL_LOG_DEBUG("KeyboardInterrupt(SIGINT) Detected.");
@@ -196,8 +134,8 @@ void Worker(const Contractor& contractor, const Config& config,
     }
     if (evaluation_result->empty()) {
       // 3.2.2. delta - SAT: We find a box which is smaller enough.
-      DREAL_LOG_DEBUG("IcpParallel::Worker() Found a delta-box:\n{}",
-                      current_box);
+      DREAL_LOG_CRITICAL("IcpParallel::Worker() Found a delta-box:\n{}",
+                         current_box);
       *found_delta_sat = id;
       return;
     }
@@ -232,7 +170,6 @@ IcpParallel::IcpParallel(const Config& config)
     : Icp{config}, pool_{static_cast<size_t>(config.number_of_jobs() - 1)} {
   results_.reserve(config.number_of_jobs() - 1);
   status_vector_.reserve(config.number_of_jobs());
-  // std::cerr << "IcpParallel()\n";
 }
 
 bool IcpParallel::CheckSat(const Contractor& contractor,
@@ -255,12 +192,8 @@ bool IcpParallel::CheckSat(const Contractor& contractor,
 
   atomic<int> number_of_boxes{0};
 
-  for (const Box& box : FillUp(cs->box(), number_of_jobs)) {
-    global_stack.push(box);
-    ++number_of_boxes;
-  }
-  // global_stack.push(cs->box());
-  // ++number_of_boxes;
+  global_stack.push(cs->box());
+  ++number_of_boxes;
 
   for (int i = 0; i < number_of_jobs; ++i) {
     status_vector_.push_back(*cs);
