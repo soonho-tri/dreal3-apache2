@@ -1,0 +1,27 @@
+# -*- python -*-
+# This file contains rules for Bazel; see https://bazel.io/ .
+
+licenses(["notice"])
+
+cc_library(
+    name = "thread_pool",
+    hdrs = [
+        "ThreadPool/ThreadPool.h",
+    ],
+    srcs = [
+        "ThreadPool/ThreadPool.cc",
+    ],
+    includes = ["."],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "thread_pool_test",
+    size = "small",
+    srcs = [
+        "test/thread_pool_test.cc",
+    ],
+    deps = [
+        ":thread_pool"
+    ],
+)
