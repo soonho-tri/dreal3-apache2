@@ -76,11 +76,19 @@ bool ParseBooleanOption(const string& key, const string& val) {
 }
 }  // namespace
 
-Context::Impl::Impl() : Impl{Config{}} {}
+Context::Impl::Impl() : Impl{Config{}} {
+  std::cerr << "Context::Impl::Impl() (SEQ)\n";
+}
 
 Context::Impl::Impl(Config config)
     : config_{config}, sat_solver_{config_}, theory_solver_{config_} {
   boxes_.push_back(Box{});
+  std::cerr << "Context::Impl::Impl(config) ";
+  if (config_.number_of_jobs() > 1) {
+    std::cerr << "(PARALLEL)\n";
+  } else {
+    std::cerr << "(SEQ)\n";
+  }
 }
 
 void Context::Impl::Assert(const Formula& f) {

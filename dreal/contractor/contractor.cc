@@ -123,7 +123,7 @@ Contractor make_contractor_seq(const vector<Contractor>& contractors,
 
 Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
                                        const Config& config) {
-  if (config.number_of_jobs() > 1 && !is_forall(f)) {
+  if (config.number_of_jobs() > 1) {
     const auto ctc =
         make_shared<ContractorIbexFwdbwdMt>(std::move(f), box, config);
     if (ctc->is_dummy()) {
@@ -145,21 +145,12 @@ Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
 Contractor make_contractor_ibex_polytope(vector<Formula> formulas,
                                          const Box& box, const Config& config) {
   if (config.number_of_jobs() > 1) {
-    bool include_forall{false};
-    for (const auto& f : formulas) {
-      if (is_forall(f)) {
-        include_forall = true;
-        break;
-      }
-    }
-    if (!include_forall) {
-      const auto ctc = make_shared<ContractorIbexPolytopeMt>(
-          std::move(formulas), box, config);
-      if (ctc->is_dummy()) {
-        return make_contractor_id(config);
-      } else {
-        return Contractor{ctc};
-      }
+    const auto ctc =
+        make_shared<ContractorIbexPolytopeMt>(std::move(formulas), box, config);
+    if (ctc->is_dummy()) {
+      return make_contractor_id(config);
+    } else {
+      return Contractor{ctc};
     }
   }
   const auto ctc =

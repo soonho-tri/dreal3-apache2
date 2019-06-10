@@ -41,6 +41,9 @@ class ThreadPool {
 
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads) : stop(false) {
+  // To make sure that the thread that created this pool gets the ID 0.
+  get_thread_id();
+
   for (size_t i = 0; i < threads; ++i)
     workers.emplace_back([this] {
       for (;;) {
@@ -90,7 +93,9 @@ inline ThreadPool::~ThreadPool() {
   }
   condition.notify_all();
   for (std::thread& worker : workers) worker.join();
-  global_thread_id_index_ = 0;
+
+  // Reset to 1 instead of 0 since 0 is preserved for the main thread.
+  global_thread_id_index_ = 1;
 }
 
 #endif

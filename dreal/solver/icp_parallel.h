@@ -19,6 +19,8 @@ class IcpParallel : public Icp {
   /// Constructs an IcpParallel based on @p config.
   explicit IcpParallel(const Config& config);
 
+  ~IcpParallel();
+
   bool CheckSat(const Contractor& contractor,
                 const std::vector<FormulaEvaluator>& formula_evaluators,
                 ContractorStatus* cs) override;
