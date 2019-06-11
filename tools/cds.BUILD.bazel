@@ -11,6 +11,10 @@ cc_library(
         "src/*.cpp",
     ]),
     includes = ["."],
+    defines = select({
+        "@dreal//tools:linux": [],
+        "@//conditions:default": ["_DARWIN_C_SOURCE"],
+    }),
     linkopts = select({
         "@dreal//tools:linux": ["-pthread"],
         "@//conditions:default": [],
