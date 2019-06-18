@@ -59,8 +59,8 @@ class ContractorForall : public ContractorCell {
   /// @pre 0.0 < inner_delta < epsilon < config.precision().
   ContractorForall(Formula f, const Box& box, double epsilon,
                    double inner_delta, const Config& config)
-      : ContractorCell{Contractor::Kind::FORALL,
-                       ibex::BitSet::empty(box.size()), config},
+      : ContractorCell{Contractor::Kind::FORALL, config},
+        input_{ibex::BitSet::empty(box.size())},
         f_{std::move(f)},
         quantified_variables_{get_quantified_variables(f_)},
         strengthend_negated_nested_f_{Nnfizer{}.Convert(
@@ -103,9 +103,8 @@ class ContractorForall : public ContractorCell {
     }
 
     // Build input.
-    ibex::BitSet& input{mutable_input()};
     for (const Variable& v : f_.GetFreeVariables()) {
-      input.add(box.index(v));
+      input_.add(box.index(v));
     }
     if (this->config().use_local_optimization()) {
       refiner_ = std::make_unique<CounterexampleRefiner>(
@@ -220,6 +219,10 @@ class ContractorForall : public ContractorCell {
     return os << "ContractorForall(" << f_ << ")";
   }
 
+  const ibex::BitSet& input() const override { return input_; }
+
+  ibex::BitSet& mutable_input() override { return input_; }
+
  private:
   static Box ExtendBox(Box box, const Variables& vars) {
     for (const Variable& v : vars) {
@@ -228,6 +231,7 @@ class ContractorForall : public ContractorCell {
     return box;
   }
 
+  ibex::BitSet input_;
   const Formula f_;                             // ∀X.φ
   const Variables quantified_variables_;        // X
   const Formula strengthend_negated_nested_f_;  // (¬φ)⁻ᵟ¹
@@ -249,18 +253,12 @@ class ContractorForallMt : public ContractorCell {
   /// Constructs ForallMt contractor using @p f and @p box.
   ContractorForallMt(Formula f, const Box& box, double epsilon,
                      double inner_delta, const Config& config)
-      : ContractorCell{Contractor::Kind::FORALL,
-                       ibex::BitSet::empty(box.size()), config},
+      : ContractorCell{Contractor::Kind::FORALL, config},
         f_{std::move(f)},
         epsilon_{epsilon},
         inner_delta_{inner_delta},
         ctc_ready_(config.number_of_jobs(), 0),
-        ctcs_(ctc_ready_.size()) {
-    ContractorForall<ContextType>* const ctc{GetCtcOrCreate(box)};
-    DREAL_ASSERT(ctc);
-    // Build input.
-    mutable_input() = ctc->input();
-  }
+        ctcs_(ctc_ready_.size()) {}
 
   /// Deleted copy constructor.
   ContractorForallMt(const ContractorForallMt&) = delete;
@@ -284,6 +282,16 @@ class ContractorForallMt : public ContractorCell {
 
   std::ostream& display(std::ostream& os) const override {
     return os << "ContractorForall(" << f_ << ")";
+  }
+
+  const ibex::BitSet& input() const override {
+    DREAL_ASSERT(ctc_ready_[0]);
+    return ctcs_[0]->input();
+  }
+
+  ibex::BitSet& mutable_input() override {
+    DREAL_ASSERT(ctc_ready_[0]);
+    return ctcs_[0]->mutable_input();
   }
 
  private:

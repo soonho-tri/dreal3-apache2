@@ -15,20 +15,22 @@ namespace dreal {
 ContractorFixpoint::ContractorFixpoint(TerminationCondition term_cond,
                                        vector<Contractor> contractors,
                                        const Config& config)
-    : ContractorCell{Contractor::Kind::FIXPOINT,
-                     ibex::BitSet::empty(ComputeInputSize(contractors)),
-                     config},
+    : ContractorCell{Contractor::Kind::FIXPOINT, config},
+      input_(ibex::BitSet::empty(ComputeInputSize(contractors))),
       term_cond_{std::move(term_cond)},
       contractors_{std::move(contractors)} {
   DREAL_ASSERT(!contractors_.empty());
-  ibex::BitSet& input{mutable_input()};
   for (const Contractor& c : contractors_) {
-    input |= c.input();
+    input_ |= c.input();
     if (c.include_forall()) {
       set_include_forall();
     }
   }
 }
+
+const ibex::BitSet& ContractorFixpoint::input() const { return input_; }
+
+ibex::BitSet& ContractorFixpoint::mutable_input() { return input_; }
 
 void ContractorFixpoint::Prune(ContractorStatus* cs) const {
   const Box::IntervalVector& iv{cs->box().interval_vector()};

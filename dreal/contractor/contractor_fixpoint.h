@@ -39,10 +39,15 @@ class ContractorFixpoint : public ContractorCell {
   /// Default destructor.
   ~ContractorFixpoint() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
   std::ostream& display(std::ostream& os) const override;
 
  private:
+  ibex::BitSet input_;
   // Stop the fixed-point iteration if term_cond(old_box, new_box) is true.
   const TerminationCondition term_cond_;
   const std::vector<Contractor> contractors_;

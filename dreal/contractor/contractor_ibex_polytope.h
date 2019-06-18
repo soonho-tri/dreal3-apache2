@@ -47,6 +47,10 @@ class ContractorIbexPolytope : public ContractorCell {
   /// Default destructor.
   ~ContractorIbexPolytope() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
   std::ostream& display(std::ostream& os) const override;
 
@@ -54,6 +58,7 @@ class ContractorIbexPolytope : public ContractorCell {
   bool is_dummy() const;
 
  private:
+  ibex::BitSet input_;
   const std::vector<Formula> formulas_;
   bool is_dummy_{false};
 

@@ -11,19 +11,21 @@ namespace dreal {
 
 ContractorJoin::ContractorJoin(vector<Contractor> contractors,
                                const Config& config)
-    : ContractorCell{Contractor::Kind::JOIN,
-                     ibex::BitSet::empty(ComputeInputSize(contractors)),
-                     config},
+    : ContractorCell{Contractor::Kind::JOIN, config},
+      input_{ibex::BitSet::empty(ComputeInputSize(contractors))},
       contractors_{std::move(contractors)} {
   DREAL_ASSERT(!contractors_.empty());
-  ibex::BitSet& input{mutable_input()};
   for (const Contractor& c : contractors_) {
-    input |= c.input();
+    input_ |= c.input();
     if (c.include_forall()) {
       set_include_forall();
     }
   }
 }
+
+const ibex::BitSet& ContractorJoin::input() const { return input_; }
+
+ibex::BitSet& ContractorJoin::mutable_input() { return input_; }
 
 void ContractorJoin::Prune(ContractorStatus* cs) const {
   ContractorStatus saved_original{*cs};

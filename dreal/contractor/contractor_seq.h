@@ -32,12 +32,17 @@ class ContractorSeq : public ContractorCell {
   /// Default destructor.
   ~ContractorSeq() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
   std::ostream& display(std::ostream& os) const override;
 
   const std::vector<Contractor>& contractors() const;
 
  private:
+  ibex::BitSet input_;
   std::vector<Contractor> contractors_;
 };
 }  // namespace dreal

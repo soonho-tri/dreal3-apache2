@@ -27,9 +27,8 @@ void UpdateWorklist(const ibex::BitSet& output,
 ContractorWorklistFixpoint::ContractorWorklistFixpoint(
     TerminationCondition term_cond, vector<Contractor> contractors,
     const Config& config)
-    : ContractorCell{Contractor::Kind::WORKLIST_FIXPOINT,
-                     ibex::BitSet::empty(ComputeInputSize(contractors)),
-                     config},
+    : ContractorCell{Contractor::Kind::WORKLIST_FIXPOINT, config},
+      input_{ibex::BitSet::empty(ComputeInputSize(contractors))},
       term_cond_{std::move(term_cond)},
       contractors_{std::move(contractors)},
       input_to_contractors_{static_cast<size_t>(ComputeInputSize(contractors_)),
@@ -37,17 +36,16 @@ ContractorWorklistFixpoint::ContractorWorklistFixpoint(
       worklist_{ibex::BitSet::empty(contractors_.size())} {
   DREAL_ASSERT(!contractors_.empty());
   // Setup the input member.
-  ibex::BitSet& input{mutable_input()};
   for (const Contractor& ctc : contractors_) {
-    input |= ctc.input();
+    input_ |= ctc.input();
     if (ctc.include_forall()) {
       set_include_forall();
     }
   }
 
   // Setup input_to_contractors_.
-  if (!input.empty()) {
-    for (int i = 0; i <= input.max(); ++i) {
+  if (!input_.empty()) {
+    for (int i = 0; i <= input_.max(); ++i) {
       for (size_t j = 0; j < contractors_.size(); ++j) {
         if (contractors_[j].input()[i]) {
           input_to_contractors_[i].add(j);
@@ -56,6 +54,10 @@ ContractorWorklistFixpoint::ContractorWorklistFixpoint(
     }
   }
 }
+
+const ibex::BitSet& ContractorWorklistFixpoint::input() const { return input_; }
+
+ibex::BitSet& ContractorWorklistFixpoint::mutable_input() { return input_; }
 
 /**
 Q : list of contractors

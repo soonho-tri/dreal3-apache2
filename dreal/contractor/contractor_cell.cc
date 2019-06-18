@@ -21,14 +21,10 @@ using std::vector;
 namespace dreal {
 
 ContractorCell::ContractorCell(const Contractor::Kind kind,
-                               const ibex::BitSet& input, const Config& config)
-    : kind_{kind}, input_{input}, config_{config} {}
+                               const Config& config)
+    : kind_{kind}, config_{config} {}
 
 Contractor::Kind ContractorCell::kind() const { return kind_; }
-
-const ibex::BitSet& ContractorCell::input() const { return input_; }
-
-ibex::BitSet& ContractorCell::mutable_input() { return input_; }
 
 const Config& ContractorCell::config() const { return config_; }
 

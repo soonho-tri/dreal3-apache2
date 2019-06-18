@@ -35,6 +35,10 @@ class ContractorIbexFwdbwd : public ContractorCell {
 
   ~ContractorIbexFwdbwd() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
 
   std::ostream& display(std::ostream& os) const override;
@@ -43,6 +47,7 @@ class ContractorIbexFwdbwd : public ContractorCell {
   bool is_dummy() const;
 
  private:
+  ibex::BitSet input_;
   const Formula f_;
   bool is_dummy_{false};
   IbexConverter ibex_converter_;

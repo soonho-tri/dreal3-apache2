@@ -17,19 +17,22 @@ namespace dreal {
 ContractorIbexPolytopeMt::ContractorIbexPolytopeMt(vector<Formula> formulas,
                                                    const Box& box,
                                                    const Config& config)
-    : ContractorCell{Contractor::Kind::IBEX_POLYTOPE,
-                     ibex::BitSet::empty(box.size()), config},
+    : ContractorCell{Contractor::Kind::IBEX_POLYTOPE, config},
       formulas_{std::move(formulas)},
       config_{config},
       ctc_ready_(config_.number_of_jobs(), 0),
       ctcs_(ctc_ready_.size()) {
   DREAL_LOG_DEBUG("ContractorIbexPolytopeMt::ContractorIbexPolytopeMt");
-  ContractorIbexPolytope* const ctc{GetCtcOrCreate(box)};
-  DREAL_ASSERT(ctc);
-  // Build input.
-  mutable_input() = ctc->input();
+}
 
-  is_dummy_ = ctc->is_dummy();
+const ibex::BitSet& ContractorIbexPolytopeMt::input() const {
+  DREAL_ASSERT(ctc_ready_[0]);
+  return ctcs_[0]->input();
+}
+
+ibex::BitSet& ContractorIbexPolytopeMt::mutable_input() {
+  DREAL_ASSERT(ctc_ready_[0]);
+  return ctcs_[0]->mutable_input();
 }
 
 ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
@@ -49,7 +52,7 @@ ContractorIbexPolytope* ContractorIbexPolytopeMt::GetCtcOrCreate(
 
 void ContractorIbexPolytopeMt::Prune(ContractorStatus* cs) const {
   ContractorIbexPolytope* const ctc{GetCtcOrCreate(cs->box())};
-  DREAL_ASSERT(ctc && !is_dummy_);
+  DREAL_ASSERT(ctc && !is_dummy());
   return ctc->Prune(cs);
 }
 
@@ -61,6 +64,9 @@ ostream& ContractorIbexPolytopeMt::display(ostream& os) const {
   return os << ")";
 }
 
-bool ContractorIbexPolytopeMt::is_dummy() const { return is_dummy_; }
+bool ContractorIbexPolytopeMt::is_dummy() const {
+  DREAL_ASSERT(ctc_ready_[0]);
+  return ctcs_[0]->is_dummy();
+}
 
 }  // namespace dreal

@@ -39,6 +39,10 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
 
   ~ContractorIbexFwdbwdMt() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
 
   std::ostream& display(std::ostream& os) const override;
@@ -50,7 +54,6 @@ class ContractorIbexFwdbwdMt : public ContractorCell {
   ContractorIbexFwdbwd* GetCtcOrCreate(const Box& box) const;
 
   const Formula f_;
-  bool is_dummy_{false};
   const Config config_;
 
   // ctc_ready_[i] is 1 indicates that ctcs_[i] is ready to be used.

@@ -21,8 +21,8 @@ namespace dreal {
 ContractorIbexPolytope::ContractorIbexPolytope(vector<Formula> formulas,
                                                const Box& box,
                                                const Config& config)
-    : ContractorCell{Contractor::Kind::IBEX_POLYTOPE,
-                     ibex::BitSet::empty(box.size()), config},
+    : ContractorCell{Contractor::Kind::IBEX_POLYTOPE, config},
+      input_{ibex::BitSet::empty(box.size())},
       formulas_{std::move(formulas)},
       ibex_converter_{box} {
   DREAL_LOG_DEBUG("ContractorIbexPolytope::ContractorIbexPolytope");
@@ -57,13 +57,16 @@ ContractorIbexPolytope::ContractorIbexPolytope(vector<Formula> formulas,
   ctc_ = make_unique<ibex::CtcPolytopeHull>(*linear_relax_combo_);
 
   // Build input.
-  ibex::BitSet& input{mutable_input()};
   for (const Formula& f : formulas_) {
     for (const Variable& var : f.GetFreeVariables()) {
-      input.add(box.index(var));
+      input_.add(box.index(var));
     }
   }
 }
+
+const ibex::BitSet& ContractorIbexPolytope::input() const { return input_; }
+
+ibex::BitSet& ContractorIbexPolytope::mutable_input() { return input_; }
 
 void ContractorIbexPolytope::Prune(ContractorStatus* cs) const {
   DREAL_ASSERT(!is_dummy_ && ctc_);

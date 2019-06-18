@@ -10,19 +10,22 @@ using std::ostream;
 namespace dreal {
 
 ContractorInteger::ContractorInteger(const Box& box, const Config& config)
-    : ContractorCell{Contractor::Kind::INTEGER, ibex::BitSet::empty(box.size()),
-                     config} {
-  ibex::BitSet& input{mutable_input()};
+    : ContractorCell{Contractor::Kind::INTEGER, config},
+      input_{ibex::BitSet::empty(box.size())} {
   int_indexes_.reserve(box.size());
   for (int i = 0; i < box.size(); ++i) {
     const Variable::Type type{box.variable(i).get_type()};
     if (type == Variable::Type::INTEGER || type == Variable::Type::BINARY) {
       int_indexes_.push_back(i);
-      input.add(i);
+      input_.add(i);
     }
   }
   DREAL_ASSERT(!int_indexes_.empty());
 }
+
+const ibex::BitSet& ContractorInteger::input() const { return input_; }
+
+ibex::BitSet& ContractorInteger::mutable_input() { return input_; }
 
 void ContractorInteger::Prune(ContractorStatus* contractor_status) const {
   Box& box{contractor_status->mutable_box()};

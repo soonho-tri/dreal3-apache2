@@ -28,9 +28,8 @@ class ContractorForall;
 /// Abstract base class of contractors.
 class ContractorCell {
  public:
-  /// Constructs a cell with @p kind and @p input.
-  ContractorCell(Contractor::Kind kind, const ibex::BitSet& input,
-                 const Config& config);
+  /// Constructs a cell with @p kind and @p config.
+  ContractorCell(Contractor::Kind kind, const Config& config);
 
   /// Deleted default constructor.
   ContractorCell() = delete;
@@ -54,10 +53,10 @@ class ContractorCell {
   Contractor::Kind kind() const;
 
   /// Returns its input.
-  const ibex::BitSet& input() const;
+  virtual const ibex::BitSet& input() const = 0;
 
   /// Returns its input.
-  ibex::BitSet& mutable_input();
+  virtual ibex::BitSet& mutable_input() = 0;
 
   /// Returns config.
   const Config& config() const;
@@ -76,7 +75,6 @@ class ContractorCell {
 
  private:
   const Contractor::Kind kind_;
-  ibex::BitSet input_;
   const Config config_;
   bool include_forall_{false};
 };

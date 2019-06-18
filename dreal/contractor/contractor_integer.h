@@ -32,10 +32,15 @@ class ContractorInteger : public ContractorCell {
   /// Default destructor.
   ~ContractorInteger() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* contractor_status) const override;
   std::ostream& display(std::ostream& os) const override;
 
  private:
+  ibex::BitSet input_;
   std::vector<int> int_indexes_;
 };
 }  // namespace dreal

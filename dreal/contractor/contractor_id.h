@@ -24,7 +24,14 @@ class ContractorId : public ContractorCell {
   /// Default destructor.
   ~ContractorId() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
   std::ostream& display(std::ostream& os) const override;
+
+ private:
+  ibex::BitSet input_;
 };
 }  // namespace dreal

@@ -33,10 +33,15 @@ class ContractorJoin : public ContractorCell {
   /// Default destructor.
   ~ContractorJoin() override = default;
 
+  const ibex::BitSet& input() const override;
+
+  ibex::BitSet& mutable_input() override;
+
   void Prune(ContractorStatus* cs) const override;
   std::ostream& display(std::ostream& os) const override;
 
  private:
+  ibex::BitSet input_;
   std::vector<Contractor> contractors_;
 };
 }  // namespace dreal

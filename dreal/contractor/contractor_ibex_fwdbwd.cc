@@ -52,8 +52,8 @@ class ContractorIbexFwdbwdStat : public Stat {
 //---------------------------------------
 ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
                                            const Config& config)
-    : ContractorCell{Contractor::Kind::IBEX_FWDBWD,
-                     ibex::BitSet::empty(box.size()), config},
+    : ContractorCell{Contractor::Kind::IBEX_FWDBWD, config},
+      input_{ibex::BitSet::empty(box.size())},
       f_{std::move(f)},
       ibex_converter_{box} {
   // Build num_ctr and ctc_.
@@ -62,14 +62,17 @@ ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
     num_ctr_ = make_unique<ibex::NumConstraint>(ibex_converter_.variables(),
                                                 *expr_ctr_);
     // Build input.
-    ibex::BitSet& input{mutable_input()};
     for (const Variable& var : f_.GetFreeVariables()) {
-      input.add(box.index(var));
+      input_.add(box.index(var));
     }
   } else {
     is_dummy_ = true;
   }
 }
+
+const ibex::BitSet& ContractorIbexFwdbwd::input() const { return input_; }
+
+ibex::BitSet& ContractorIbexFwdbwd::mutable_input() { return input_; }
 
 void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
   thread_local ContractorIbexFwdbwdStat stat{DREAL_LOG_INFO_ENABLED};
