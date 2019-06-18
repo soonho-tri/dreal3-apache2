@@ -118,18 +118,20 @@ bool is_cnf(const Formula& f) {
 
 bool HaveIntersection(const Variables& variables1,
                       const Variables& variables2) {
-  auto begin1 = variables1.begin();
-  auto begin2 = variables2.begin();
+  auto it1 = variables1.begin();
+  auto it2 = variables2.begin();
   const auto end1 = variables1.end();
   const auto end2 = variables2.end();
-  while (begin1 != end1 && begin2 != end2) {
-    if (begin1->less(*begin2)) {
-      ++begin1;
+  while (it1 != end1 && it2 != end2) {
+    if (it1->less(*it2)) {
+      ++it1;
     } else {
-      if (!begin2->less(*begin1)) {
+      if (it2->less(*it1)) {
+        ++it2;
+      } else {
+        // *it1 == *it2
         return true;
       }
-      ++begin2;
     }
   }
   return false;
