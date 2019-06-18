@@ -50,9 +50,8 @@ inline ThreadPool::ThreadPool(size_t threads) : stop(false) {
 
   for (size_t i = 0; i < threads; ++i)
     workers.emplace_back([this] {
+      std::function<void()> task;
       for (;;) {
-        std::function<void()> task;
-
         {
           std::unique_lock<std::mutex> lock(this->queue_mutex);
           this->condition.wait(
@@ -92,7 +91,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 // the destructor joins all threads
 inline ThreadPool::~ThreadPool() {
   {
-    std::unique_lock<std::mutex> lock(queue_mutex);
+    std::lock_guard<std::mutex> lock(queue_mutex);
     stop = true;
   }
   condition.notify_all();
