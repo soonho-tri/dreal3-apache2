@@ -123,43 +123,34 @@ Contractor make_contractor_seq(const vector<Contractor>& contractors,
 
 Contractor make_contractor_ibex_fwdbwd(Formula f, const Box& box,
                                        const Config& config) {
-  if (config.number_of_jobs() > 1) {
-    const auto ctc =
-        make_shared<ContractorIbexFwdbwdMt>(std::move(f), box, config);
-    if (ctc->is_dummy()) {
-      return make_contractor_id(config);
-    } else {
-      return Contractor{ctc};
-    }
-  } else {
-    const auto ctc =
-        make_shared<ContractorIbexFwdbwd>(std::move(f), box, config);
-    if (ctc->is_dummy()) {
-      return make_contractor_id(config);
-    } else {
-      return Contractor{ctc};
-    }
+  DREAL_ASSERT(!is_true(f));
+  DREAL_ASSERT(!is_false(f));
+  // If f is (e1 != e2) or !(e1 == e2), then returns an Id.
+  if (is_not_equal_to(f) || (is_negation(f) && is_equal_to(get_operand(f)))) {
+    return make_contractor_id(config);
   }
-}  // namespace dreal
+  DREAL_ASSERT(!ContractorIbexFwdbwd::is_dummy(f));
+  if (config.number_of_jobs() > 1) {
+    return Contractor{
+        make_shared<ContractorIbexFwdbwdMt>(std::move(f), box, config)};
+  } else {
+    return Contractor{
+        make_shared<ContractorIbexFwdbwd>(std::move(f), box, config)};
+  }
+}
 
 Contractor make_contractor_ibex_polytope(vector<Formula> formulas,
                                          const Box& box, const Config& config) {
-  if (config.number_of_jobs() > 1) {
-    const auto ctc =
-        make_shared<ContractorIbexPolytopeMt>(std::move(formulas), box, config);
-    if (ctc->is_dummy()) {
-      return make_contractor_id(config);
-    } else {
-      return Contractor{ctc};
-    }
-  }
-  const auto ctc =
-      make_shared<ContractorIbexPolytope>(std::move(formulas), box, config);
-  if (ctc->is_dummy()) {
+  if (ContractorIbexPolytope::is_dummy(formulas)) {
     return make_contractor_id(config);
-  } else {
-    return Contractor{ctc};
   }
+
+  if (config.number_of_jobs() > 1) {
+    return Contractor{make_shared<ContractorIbexPolytopeMt>(std::move(formulas),
+                                                            box, config)};
+  }
+  return Contractor{
+      make_shared<ContractorIbexPolytope>(std::move(formulas), box, config)};
 }
 
 Contractor make_contractor_fixpoint(TerminationCondition term_cond,

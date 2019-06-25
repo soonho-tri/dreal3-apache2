@@ -3,6 +3,7 @@
 #include <sstream>
 #include <utility>
 
+#include "dreal/contractor/contractor_ibex_fwdbwd.h"
 #include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
 #include "dreal/util/math.h"
@@ -25,6 +26,7 @@ ContractorIbexPolytope::ContractorIbexPolytope(vector<Formula> formulas,
       input_{ibex::BitSet::empty(box.size())},
       formulas_{std::move(formulas)},
       ibex_converter_{box} {
+  DREAL_ASSERT(!ContractorIbexPolytope::is_dummy(formulas_));
   DREAL_LOG_DEBUG("ContractorIbexPolytope::ContractorIbexPolytope");
 
   // Build SystemFactory. Add variables and constraints.
@@ -47,7 +49,11 @@ ContractorIbexPolytope::ContractorIbexPolytope(vector<Formula> formulas,
   // Build System.
   system_ = make_unique<ibex::System>(*system_factory_);
   if (system_->nb_ctr == 0) {
-    is_dummy_ = true;
+    for (const auto& f : formulas_) {
+      std::cout << "NONO: " << f << "\n";
+    }
+    std::cout << "polytope contractor will be a dummy.\n";
+    throw 1;
     return;
   }
 
@@ -64,12 +70,24 @@ ContractorIbexPolytope::ContractorIbexPolytope(vector<Formula> formulas,
   }
 }
 
+bool ContractorIbexPolytope::is_dummy(const vector<Formula>& formulas) {
+  for (const auto& f : formulas) {
+    if (is_forall(f)) {
+      continue;
+    }
+    if (!ContractorIbexFwdbwd::is_dummy(f)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 const ibex::BitSet& ContractorIbexPolytope::input() const { return input_; }
 
 ibex::BitSet& ContractorIbexPolytope::mutable_input() { return input_; }
 
 void ContractorIbexPolytope::Prune(ContractorStatus* cs) const {
-  DREAL_ASSERT(!is_dummy_ && ctc_);
+  DREAL_ASSERT(ctc_);
   Box::IntervalVector& iv{cs->mutable_box().mutable_interval_vector()};
   const Box::IntervalVector old_iv = iv;
   DREAL_LOG_TRACE("ContractorIbexPolytope::Prune");
@@ -108,7 +126,5 @@ ostream& ContractorIbexPolytope::display(ostream& os) const {
   os << ")";
   return os;
 }
-
-bool ContractorIbexPolytope::is_dummy() const { return is_dummy_; }
 
 }  // namespace dreal

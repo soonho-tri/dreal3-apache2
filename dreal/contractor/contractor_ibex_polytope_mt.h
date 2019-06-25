@@ -47,13 +47,11 @@ class ContractorIbexPolytopeMt : public ContractorCell {
   void Prune(ContractorStatus* cs) const override;
   std::ostream& display(std::ostream& os) const override;
 
-  /// Returns true if it has no internal ibex contractor.
-  bool is_dummy() const;
-
  private:
   ContractorIbexPolytope* GetCtcOrCreate(const Box& box) const;
 
   const std::vector<Formula> formulas_;
+  const Box box_;
   const Config config_;
 
   // ctc_ready_[i] is 1 indicates that ctcs_[i] is ready to be used.

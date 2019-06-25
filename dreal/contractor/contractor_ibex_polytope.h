@@ -55,12 +55,11 @@ class ContractorIbexPolytope : public ContractorCell {
   std::ostream& display(std::ostream& os) const override;
 
   /// Returns true if it has no internal ibex contractor.
-  bool is_dummy() const;
+  static bool is_dummy(const std::vector<Formula>& formulas);
 
  private:
   ibex::BitSet input_;
   const std::vector<Formula> formulas_;
-  bool is_dummy_{false};
 
   IbexConverter ibex_converter_;
   std::unique_ptr<ibex::SystemFactory> system_factory_;

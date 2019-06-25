@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <utility>
+#include "/home/soonhok/work/dreal4/third_party/com_github_robotlocomotion_drake/dreal/symbolic/symbolic_formula.h"
 
 #include "dreal/util/assert.h"
 #include "dreal/util/logging.h"
@@ -56,18 +57,21 @@ ContractorIbexFwdbwd::ContractorIbexFwdbwd(Formula f, const Box& box,
       input_{ibex::BitSet::empty(box.size())},
       f_{std::move(f)},
       ibex_converter_{box} {
+  DREAL_ASSERT(!is_dummy(f_));
   // Build num_ctr and ctc_.
   expr_ctr_.reset(ibex_converter_.Convert(f_));
-  if (expr_ctr_) {
-    num_ctr_ = make_unique<ibex::NumConstraint>(ibex_converter_.variables(),
-                                                *expr_ctr_);
-    // Build input.
-    for (const Variable& var : f_.GetFreeVariables()) {
-      input_.add(box.index(var));
-    }
-  } else {
-    is_dummy_ = true;
+  DREAL_ASSERT(expr_ctr_);
+  num_ctr_ =
+      make_unique<ibex::NumConstraint>(ibex_converter_.variables(), *expr_ctr_);
+  // Build input.
+  for (const Variable& var : f_.GetFreeVariables()) {
+    input_.add(box.index(var));
   }
+}
+
+bool ContractorIbexFwdbwd::is_dummy(const Formula& f) {
+  return is_true(f) || is_false(f) || is_not_equal_to(f) ||
+         (is_negation(f) && is_equal_to(get_operand(f)));
 }
 
 const ibex::BitSet& ContractorIbexFwdbwd::input() const { return input_; }
@@ -76,7 +80,7 @@ ibex::BitSet& ContractorIbexFwdbwd::mutable_input() { return input_; }
 
 void ContractorIbexFwdbwd::Prune(ContractorStatus* cs) const {
   thread_local ContractorIbexFwdbwdStat stat{DREAL_LOG_INFO_ENABLED};
-  DREAL_ASSERT(!is_dummy_ && num_ctr_);
+  DREAL_ASSERT(num_ctr_);
 
   Box::IntervalVector& iv{cs->mutable_box().mutable_interval_vector()};
   DREAL_LOG_TRACE("ContractorIbexFwdbwd::Prune");
@@ -127,7 +131,5 @@ ostream& ContractorIbexFwdbwd::display(ostream& os) const {
   DREAL_ASSERT(num_ctr_);
   return os << "IbexFwdbwd(" << *num_ctr_ << ")";
 }
-
-bool ContractorIbexFwdbwd::is_dummy() const { return is_dummy_; }
 
 }  // namespace dreal

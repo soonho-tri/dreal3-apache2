@@ -43,13 +43,14 @@ class ContractorIbexFwdbwd : public ContractorCell {
 
   std::ostream& display(std::ostream& os) const override;
 
-  /// Returns true if it has no internal ibex contractor.
-  bool is_dummy() const;
+  /// Returns true if @p f will not have a corresponding ibex contractor. It
+  /// happens if @p f is either 1) true, 2) false, 3) (e1 != e2), or 4) !(e1 ==
+  /// e2).
+  static bool is_dummy(const Formula& f);
 
  private:
   ibex::BitSet input_;
   const Formula f_;
-  bool is_dummy_{false};
   IbexConverter ibex_converter_;
   std::unique_ptr<const ibex::ExprCtr> expr_ctr_;
   std::unique_ptr<ibex::NumConstraint> num_ctr_;
