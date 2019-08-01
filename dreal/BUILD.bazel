@@ -153,6 +153,24 @@ dreal_py_test(
 )
 
 dreal_py_test(
+    name = "bug",
+    srcs = [
+        "test/python/bug1.py",
+    ],
+    main = "test/python/bug1.py",
+    tags = [
+        "no_asan",
+        "no_lsan",
+        "no_tsan",
+        "no_ubsan",
+    ],
+    deps = [
+        ":dreal_py",
+    ],
+)
+
+
+dreal_py_test(
     name = "smt2_test_py",
     srcs = [
         "test/python/smt2_test.py",
