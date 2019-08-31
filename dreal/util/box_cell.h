@@ -1,46 +1,40 @@
 #pragma once
 
-#include <iostream>
+#include <atomic>
 #include <memory>
 #include <unordered_map>
 #include <utility>
-#include <vector>
-
-#include "./ibex.h"
 
 #include "dreal/symbolic/symbolic.h"
+#include "dreal/util/box.h"
 
 namespace dreal {
 
-class BoxCell;
-
-/// Represents a n-dimensional interval vector. This is a wrapper of
-/// ibex::IntervalVector.
-class Box {
+class BoxCell {
  public:
-  using Interval = ibex::Interval;
-  using IntervalVector = ibex::IntervalVector;
+  using Interval = Box::Interval;
+  using IntervalVector = Box::IntervalVector;
 
   /// Constructs a zero-dimensional box.
-  Box();
+  BoxCell();
 
   /// Constructs a box from @p variables.
-  explicit Box(const std::vector<Variable>& variables);
+  explicit BoxCell(const std::vector<Variable>& variables);
 
   /// Default copy constructor.
-  Box(const Box&) = default;
+  BoxCell(const BoxCell&) = default;
 
   /// Default move constructor.
-  Box(Box&&) = default;
+  BoxCell(BoxCell&&) = default;
 
   /// Default copy assign operator.
-  Box& operator=(const Box&) = default;
+  BoxCell& operator=(const BoxCell&) = default;
 
   /// Default move assign operator.
-  Box& operator=(Box&&) = default;
+  BoxCell& operator=(BoxCell&&) = default;
 
   /// Default destructor.
-  ~Box() = default;
+  ~BoxCell() = default;
 
   /// Adds @p v to the box.
   void Add(const Variable& v);
@@ -104,25 +98,35 @@ class Box {
   Box& InplaceUnion(const Box& b);
 
  private:
-  /// Added ----
-  explicit Box(BoxCell* ptr);
+  /// Bisects the box at @p i -th dimension.
+  /// @pre i-th variable is bisectable.
+  /// @pre i-th variable is of integer type.
+  std::pair<Box, Box> bisect_int(int i) const;
 
-  BoxCell* ptr_{nullptr};
+  /// Bisects the box at @p i -th dimension.
+  /// @pre i-th variable is bisectable.
+  /// @pre i-th variable is of continuous type.
+  std::pair<Box, Box> bisect_continuous(int i) const;
 
-  /// Added ----
+  std::shared_ptr<std::vector<Variable>> variables_;
 
-  friend std::ostream& operator<<(std::ostream& os, const Box& box);
+  Box::IntervalVector values_;
+
+  std::shared_ptr<std::unordered_map<Variable, int, hash_value<Variable>>>
+      var_to_idx_;
+
+  std::shared_ptr<std::unordered_map<int, Variable>> idx_to_var_;
+
+  // Reference counter.
+  mutable std::atomic<unsigned> rc_{0};
+  void increase_rc() const {
+    atomic_fetch_add_explicit(&rc_, 1U, std::memory_order_relaxed);
+  }
+  void decrease_rc() const {
+    if (atomic_fetch_sub_explicit(&rc_, 1U, std::memory_order_acq_rel) == 1U) {
+      delete this;
+    }
+  }
 };
-
-std::ostream& operator<<(std::ostream& os, const Box& box);
-
-bool operator==(const Box& b1, const Box& b2);
-
-bool operator!=(const Box& b1, const Box& b2);
-
-std::ostream& DisplayDiff(std::ostream& os,
-                          const std::vector<Variable>& variables,
-                          const Box::IntervalVector& old_iv,
-                          const Box::IntervalVector& new_iv);
 
 }  // namespace dreal

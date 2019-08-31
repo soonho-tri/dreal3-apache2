@@ -24,6 +24,8 @@ dreal_cc_library(
     name = "box",
     srcs = [
         "box.cc",
+        "box_cell.cc",
+        "box_cell.h",
     ],
     hdrs = [
         "box.h",
