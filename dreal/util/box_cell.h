@@ -95,7 +95,7 @@ class BoxCell {
   /// Updates the current box by taking union with @p b.
   ///
   /// @pre variables() == b.variables().
-  Box& InplaceUnion(const Box& b);
+  void InplaceUnion(const BoxCell& b);
 
  private:
   /// Bisects the box at @p i -th dimension.
@@ -127,6 +127,13 @@ class BoxCell {
       delete this;
     }
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const BoxCell& box);
+  friend bool operator==(const BoxCell& b1, const BoxCell& b2);
 };
+
+std::ostream& operator<<(std::ostream& os, const BoxCell& box);
+
+bool operator==(const BoxCell& b1, const BoxCell& b2);
 
 }  // namespace dreal

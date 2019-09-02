@@ -97,7 +97,6 @@ TEST_F(FilterAssertionTest, FilteredWithChange8) {
 
 TEST_F(FilterAssertionTest, FilteredWithChange9) {
   // (z == 50)
-  const Box old_box{box_};
   const auto result = FilterAssertion(z_ == 50, &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);
   EXPECT_EQ(box_[z_].lb(), 50);
@@ -122,7 +121,6 @@ TEST_F(FilterAssertionTest, NotFiltered2) {
 
 TEST_F(FilterAssertionTest, FilteredWithChange10) {
   // ¬(z != 50) => (z == 50)
-  const Box old_box{box_};
   const auto result = FilterAssertion(!(z_ != 50), &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);
   EXPECT_EQ(box_[z_].lb(), 50);
@@ -139,7 +137,6 @@ TEST_F(FilterAssertionTest, FilteredWithoutChange1) {
 
 TEST_F(FilterAssertionTest, Empty1) {
   // !(z < 150) => (z >= 150) => Empty box
-  const Box old_box{box_};
   const auto result = FilterAssertion(!(z_ < 150), &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);
   EXPECT_TRUE(box_.empty());
@@ -155,7 +152,6 @@ TEST_F(FilterAssertionTest, FilteredWithoutChange2) {
 
 TEST_F(FilterAssertionTest, Empty2) {
   // !(z < 150) => (z >= 150) => Empty box
-  const Box old_box{box_};
   const auto result = FilterAssertion(!(z_ <= 150), &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);
   EXPECT_TRUE(box_.empty());
@@ -171,7 +167,6 @@ TEST_F(FilterAssertionTest, FilteredWithoutChange3) {
 
 TEST_F(FilterAssertionTest, Empty3) {
   // !(z > -150) => (z <= -150) => Empty box
-  const Box old_box{box_};
   const auto result = FilterAssertion(!(z_ > -150), &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);
   EXPECT_TRUE(box_.empty());
@@ -187,7 +182,6 @@ TEST_F(FilterAssertionTest, FilteredWithoutChange4) {
 
 TEST_F(FilterAssertionTest, Empty4) {
   // !(z >= -150) => (z < -150) => Empty box
-  const Box old_box{box_};
   const auto result = FilterAssertion(!(z_ >= -150), &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);
   EXPECT_TRUE(box_.empty());
@@ -203,7 +197,6 @@ TEST_F(FilterAssertionTest, Equality1) {
 }
 
 TEST_F(FilterAssertionTest, Empty5) {
-  const Box old_box{box_};
   // z == 150
   const auto result = FilterAssertion(z_ == 150, &box_);
   EXPECT_EQ(result, FilterAssertionResult::FilteredWithChange);

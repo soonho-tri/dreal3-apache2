@@ -188,8 +188,10 @@ pair<Box, Box> BoxCell::bisect_int(const int i) const {
   DREAL_ASSERT(mid_floor + 1 <= ub);
   DREAL_ASSERT(ub <= intv_i.ub());
 
-  Box b1{*this};
-  Box b2{*this};
+  Box b1{*variables_};
+  b1.mutable_interval_vector() = interval_vector();
+  Box b2{*variables_};
+  b2.mutable_interval_vector() = interval_vector();
   b1[i] = Interval(lb, mid_floor);
   b2[i] = Interval(mid_floor + 1, ub);
   return make_pair(b1, b2);
@@ -197,8 +199,10 @@ pair<Box, Box> BoxCell::bisect_int(const int i) const {
 
 pair<Box, Box> BoxCell::bisect_continuous(const int i) const {
   DREAL_ASSERT(idx_to_var_->at(i).get_type() == Variable::Type::CONTINUOUS);
-  Box b1{*this};
-  Box b2{*this};
+  Box b1{*variables_};
+  b1.mutable_interval_vector() = interval_vector();
+  Box b2{*variables_};
+  b2.mutable_interval_vector() = interval_vector();
   const Interval intv_i{values_[i]};
   pair<Interval, Interval> bisected_intervals{intv_i.bisect(0.5)};
   b1[i] = bisected_intervals.first;
@@ -206,13 +210,12 @@ pair<Box, Box> BoxCell::bisect_continuous(const int i) const {
   return make_pair(b1, b2);
 }
 
-Box& BoxCell::InplaceUnion(const Box& b) {
+void BoxCell::InplaceUnion(const BoxCell& b) {
   // Checks variables() == b.variables().
   DREAL_ASSERT(equal(variables().begin(), variables().end(),
                      b.variables().begin(), b.variables().end(),
                      std::equal_to<Variable>{}));
   values_ |= b.values_;
-  return *this;
 }
 
 namespace {
@@ -233,7 +236,7 @@ class IosFmtFlagSaver {
 };
 }  // namespace
 
-ostream& operator<<(ostream& os, const Box& box) {
+ostream& operator<<(ostream& os, const BoxCell& box) {
   IosFmtFlagSaver saver{os};
   // See
   // https://stackoverflow.com/questions/554063/how-do-i-print-a-double-value-with-full-precision-using-cout#comment40126260_554134.
@@ -272,30 +275,11 @@ ostream& operator<<(ostream& os, const Box& box) {
   return os;
 }
 
-bool operator==(const Box& b1, const Box& b2) {
+bool operator==(const BoxCell& b1, const BoxCell& b2) {
   return equal(b1.variables().begin(), b1.variables().end(),
                b2.variables().begin(), b2.variables().end(),
                std::equal_to<Variable>{}) &&
          (b1.interval_vector() == b2.interval_vector());
-}
-
-bool operator!=(const Box& b1, const Box& b2) { return !(b1 == b2); }
-
-ostream& DisplayDiff(ostream& os, const vector<Variable>& variables,
-                     const Box::IntervalVector& old_iv,
-                     const Box::IntervalVector& new_iv) {
-  IosFmtFlagSaver saver{os};
-  // See
-  // https://stackoverflow.com/questions/554063/how-do-i-print-a-double-value-with-full-precision-using-cout#comment40126260_554134.
-  os.precision(numeric_limits<double>::max_digits10 + 2);
-  for (size_t i = 0; i < variables.size(); ++i) {
-    const Box::Interval& old_i{old_iv[i]};
-    const Box::Interval& new_i{new_iv[i]};
-    if (old_i != new_i) {
-      os << variables[i] << " : " << old_i << " -> " << new_i << "\n";
-    }
-  }
-  return os;
 }
 
 }  // namespace dreal

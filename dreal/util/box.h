@@ -112,6 +112,8 @@ class Box {
   /// Added ----
 
   friend std::ostream& operator<<(std::ostream& os, const Box& box);
+  friend bool operator==(const Box& b1, const Box& b2);
+  friend BoxCell;
 };
 
 std::ostream& operator<<(std::ostream& os, const Box& box);
