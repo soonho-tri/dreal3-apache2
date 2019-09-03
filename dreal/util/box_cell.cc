@@ -218,6 +218,14 @@ void BoxCell::InplaceUnion(const BoxCell& b) {
   values_ |= b.values_;
 }
 
+BoxCell* BoxCell::Clone() const {
+  BoxCell* ret{new BoxCell{variables()}};
+  ret->values_ = values_;
+  ret->var_to_idx_ = var_to_idx_;
+  ret->idx_to_var_ = idx_to_var_;
+  return ret;
+}
+
 namespace {
 // RAII which preserves the FmtFlags of an ostream.
 class IosFmtFlagSaver {

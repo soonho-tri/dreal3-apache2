@@ -28,12 +28,12 @@ namespace dreal {
 
 Box::Box() : Box{new BoxCell{}} {}
 
-Box::Box(const Box& b) : Box{b.ptr_} {
+Box::Box(const Box& b) : Box{b.ptr_->Clone()} {
   assert(ptr_ != nullptr);
   ptr_->increase_rc();
 }
 
-Box::Box(Box&& b) noexcept : Box{b.ptr_} {
+Box::Box(Box&& b) noexcept : Box{b.ptr_->Clone()} {
   assert(ptr_ != nullptr);
   b.ptr_ = nullptr;
 }
@@ -45,7 +45,7 @@ Box& Box::operator=(Box&& b) noexcept {
   if (ptr_) {
     ptr_->decrease_rc();
   }
-  ptr_ = b.ptr_;
+  ptr_ = b.ptr_->Clone();
   b.ptr_ = nullptr;
   return *this;
 }

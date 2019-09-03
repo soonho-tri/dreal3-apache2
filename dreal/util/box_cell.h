@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "dreal/symbolic/symbolic.h"
 #include "dreal/util/box.h"
@@ -96,6 +97,8 @@ class BoxCell {
   ///
   /// @pre variables() == b.variables().
   void InplaceUnion(const BoxCell& b);
+
+  BoxCell* Clone() const;
 
  private:
   /// Bisects the box at @p i -th dimension.
