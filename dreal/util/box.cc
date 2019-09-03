@@ -59,7 +59,10 @@ Box::~Box() {
 
 Box::Box(const vector<Variable>& variables) : Box{new BoxCell{variables}} {}
 
-Box::Box(BoxCell* ptr) : ptr_{ptr} {}
+Box::Box(BoxCell* ptr) : ptr_{ptr} {
+  assert(ptr_ != nullptr);
+  ptr_->increase_rc();
+}
 
 void Box::Add(const Variable& v) { ptr_->Add(v); }
 
