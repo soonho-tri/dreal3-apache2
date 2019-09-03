@@ -28,6 +28,35 @@ namespace dreal {
 
 Box::Box() : Box{new BoxCell{}} {}
 
+Box::Box(const Box& b) : Box{b.ptr_} {
+  assert(ptr_ != nullptr);
+  ptr_->increase_rc();
+}
+
+Box::Box(Box&& b) noexcept : Box{b.ptr_} {
+  assert(ptr_ != nullptr);
+  b.ptr_ = nullptr;
+}
+
+Box& Box::operator=(const Box& b) { return *this = Box{b}; }
+
+Box& Box::operator=(Box&& b) noexcept {
+  assert(b.ptr_ != nullptr);
+  if (ptr_) {
+    ptr_->decrease_rc();
+  }
+  ptr_ = b.ptr_;
+  b.ptr_ = nullptr;
+  return *this;
+}
+
+/// Destructor.
+Box::~Box() {
+  if (ptr_) {
+    ptr_->decrease_rc();
+  }
+}
+
 Box::Box(const vector<Variable>& variables) : Box{new BoxCell{variables}} {}
 
 Box::Box(BoxCell* ptr) : ptr_{ptr} {}

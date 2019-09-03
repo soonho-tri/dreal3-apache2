@@ -27,20 +27,20 @@ class Box {
   /// Constructs a box from @p variables.
   explicit Box(const std::vector<Variable>& variables);
 
-  /// Default copy constructor.
-  Box(const Box&) = default;
+  /// Copy constructor.
+  Box(const Box& b);
 
-  /// Default move constructor.
-  Box(Box&&) = default;
+  /// Move constructor.
+  Box(Box&& b) noexcept;
 
-  /// Default copy assign operator.
-  Box& operator=(const Box&) = default;
+  /// Copy assign operator.
+  Box& operator=(const Box& b);
 
-  /// Default move assign operator.
-  Box& operator=(Box&&) = default;
+  /// Move assign operator.
+  Box& operator=(Box&& b) noexcept;
 
-  /// Default destructor.
-  ~Box() = default;
+  /// Destructor.
+  ~Box();
 
   /// Adds @p v to the box.
   void Add(const Variable& v);

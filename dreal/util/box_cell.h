@@ -130,6 +130,9 @@ class BoxCell {
 
   friend std::ostream& operator<<(std::ostream& os, const BoxCell& box);
   friend bool operator==(const BoxCell& b1, const BoxCell& b2);
+
+  // So that Box can call {increase,decrease}_rc.
+  friend Box;
 };
 
 std::ostream& operator<<(std::ostream& os, const BoxCell& box);
