@@ -9,6 +9,15 @@ exports_files([
 
 load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
 load("//tools:dreal.bzl", "DREAL_PREFIX", "DREAL_VERSION", "dreal_cc_library")
+load("//third_party/com_github_grailbio_bazel-compilation-database:aspects.bzl", "compilation_database")
+
+compilation_database(
+    name = "compdb",
+    targets = [
+        ":dreal",
+        ":dreal_shared_library",
+    ],
+)
 
 cc_binary(
     name = "libdreal.so",
