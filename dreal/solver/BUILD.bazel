@@ -20,6 +20,7 @@ dreal_cc_library(
         "config.h",
     ],
     visibility = [
+        "//dreal:__pkg__",
         "//dreal/contractor:__pkg__",
         "//dreal/optimization:__pkg__",
     ],

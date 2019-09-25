@@ -4,8 +4,11 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <fmt/format.h>
+
 #include "dreal/dr/run.h"
 #include "dreal/smt2/run.h"
+#include "dreal/solver/config.h"
 #include "dreal/solver/context.h"
 #include "dreal/util/exception.h"
 #include "dreal/util/filesystem.h"
@@ -17,6 +20,7 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
+using std::to_string;
 using std::vector;
 
 namespace {
@@ -47,8 +51,6 @@ void MainProgram::AddOptions() {
       fmt::format("dReal {} : delta-complete SMT solver", get_version_string());
   opt_.syntax = "dreal [OPTIONS] <input file> (.smt2 or .dr)";
 
-  // NOTE: Make sure to match the default values specified here with the ones
-  // specified in dreal/solver/config.h.
   opt_.add("" /* Default */, false /* Required? */,
            0 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
@@ -65,11 +67,14 @@ void MainProgram::AddOptions() {
   auto* const positive_int_option_validator =
       new ez::ezOptionValidator("s4" /* 4byte integer */, "gt", "0");
 
-  opt_.add("0.001" /* Default */, false /* Required? */,
+  const double tmp = Config::kDefaultPrecision;
+  const string kDefaultPrecision{fmt::format("{}", tmp)};
+  // const string kDefaultPrecision{to_string(Config::kDefaultPrecision)};
+  opt_.add(kDefaultPrecision.c_str() /* Default */, false /* Required? */,
            1 /* Number of args expected. */,
            0 /* Delimiter if expecting multiple args. */,
-           "Precision (default = 0.001)\n", "--precision",
-           positive_double_option_validator);
+           fmt::format("Precision (default = {})\n", kDefaultPrecision).c_str(),
+           "--precision", positive_double_option_validator);
 
   opt_.add("false" /* Default */, false /* Required? */,
            0 /* Number of args expected. */,
