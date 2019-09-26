@@ -6,9 +6,9 @@
 namespace dreal {
 
 enum class FilterAssertionResult {
-  NotFiltered,
-  FilteredWithChange,
-  FilteredWithoutChange,
+  kNotFiltered,
+  kFilteredWithChange,
+  kFilteredWithoutChange,
 };
 
 /// If the @p assertion can be applied into the @p box update @p box

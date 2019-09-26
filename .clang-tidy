@@ -24,7 +24,7 @@ Checks: >
   -modernize-use-using,
   -readability-else-after-return,
   -readability-implicit-bool-cast,
-  -readability-implicit-bool-conversion'
+  -readability-implicit-bool-conversion,
   -readability-named-parameter,
   -readability-redundant-declaration,
 

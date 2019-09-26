@@ -9,6 +9,12 @@ namespace dreal {
 
 using std::ostream;
 
+constexpr double Config::kDefaultPrecision;
+constexpr double Config::kDefaultNloptFtolRel;
+constexpr double Config::kDefaultNloptFtolAbs;
+constexpr int Config::kDefaultNloptMaxEval;
+constexpr double Config::kDefaultNloptMaxTime;
+
 double Config::precision() const { return precision_.get(); }
 OptionValue<double>& Config::mutable_precision() { return precision_; }
 
@@ -84,13 +90,13 @@ OptionValue<uint32_t>& Config::mutable_random_seed() { return random_seed_; }
 std::ostream& operator<<(std::ostream& os,
                          const Config::SatDefaultPhase& sat_default_phase) {
   switch (sat_default_phase) {
-    case Config::SatDefaultPhase::False:
+    case Config::SatDefaultPhase::kFalse:
       return os << "False";
-    case Config::SatDefaultPhase::True:
+    case Config::SatDefaultPhase::kTrue:
       return os << "True";
-    case Config::SatDefaultPhase::JeroslowWang:
+    case Config::SatDefaultPhase::kJeroslowWang:
       return os << "Jeroslow-Wang";
-    case Config::SatDefaultPhase::RandomInitialPhase:
+    case Config::SatDefaultPhase::kRandomInitialPhase:
       return os << "Random Initial Phase";
   }
   DREAL_UNREACHABLE();

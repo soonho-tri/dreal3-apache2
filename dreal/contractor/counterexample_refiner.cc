@@ -29,14 +29,14 @@ CounterexampleRefiner::CounterexampleRefiner(const Formula& query,
     for (const Formula& f : get_operands(query)) {
       DREAL_ASSERT(is_relational(f));
       const FilterAssertionResult result{FilterAssertion(f, &box)};
-      if (result == FilterAssertionResult::NotFiltered) {
+      if (result == FilterAssertionResult::kNotFiltered) {
         formulas.push_back(f);
       }
     }
   } else {
     DREAL_ASSERT(is_relational(query));
     const FilterAssertionResult result{FilterAssertion(query, &box)};
-    if (result == FilterAssertionResult::NotFiltered) {
+    if (result == FilterAssertionResult::kNotFiltered) {
       formulas.push_back(query);
     }
   }

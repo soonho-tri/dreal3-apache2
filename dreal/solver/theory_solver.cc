@@ -38,7 +38,7 @@ namespace {
 bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
                                  const Box::IntervalVector& new_iv) {
   DREAL_ASSERT(!new_iv.is_empty());
-  constexpr double threshold{0.01};
+  constexpr double kThreshold{0.01};
   // If there is a dimension which is improved more than
   // threshold, we continue the current fixed-point computation
   // (return false).
@@ -55,7 +55,7 @@ bool DefaultTerminationCondition(const Box::IntervalVector& old_iv,
     const double old_i{old_iv[i].diam()};
     const double improvement{1 - new_i / old_i};
     DREAL_ASSERT(!std::isnan(improvement));
-    if (improvement >= threshold) {
+    if (improvement >= kThreshold) {
       return false;
     }
   }
@@ -103,16 +103,16 @@ optional<Contractor> TheorySolver::BuildContractor(
   vector<Contractor> ctcs;
   for (const Formula& f : assertions) {
     switch (FilterAssertion(f, &box)) {
-      case FilterAssertionResult::NotFiltered:
+      case FilterAssertionResult::kNotFiltered:
         /* No OP */
         break;
-      case FilterAssertionResult::FilteredWithChange:
+      case FilterAssertionResult::kFilteredWithChange:
         contractor_status->AddUsedConstraint(f);
         if (box.empty()) {
           return {};
         }
         continue;
-      case FilterAssertionResult::FilteredWithoutChange:
+      case FilterAssertionResult::kFilteredWithoutChange:
         continue;
     }
     auto it = contractor_cache_.find(f);
