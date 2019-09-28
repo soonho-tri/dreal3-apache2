@@ -1,3 +1,7 @@
+load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
+load("//tools:dreal.bzl", "DREAL_PREFIX", "DREAL_VERSION", "dreal_cc_library")
+load("//third_party/com_github_grailbio_bazel-compilation-database:aspects.bzl", "compilation_database")
+
 package(
     default_visibility = ["//visibility:private"],
 )
@@ -7,12 +11,9 @@ exports_files([
     ".clang-format",
 ])
 
-load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
-load("//tools:dreal.bzl", "DREAL_PREFIX", "DREAL_VERSION", "dreal_cc_library")
-load("//third_party/com_github_grailbio_bazel-compilation-database:aspects.bzl", "compilation_database")
-
 compilation_database(
     name = "compdb",
+    exec_root = "bazel-dreal4",
     targets = [
         ":dreal",
         ":dreal_shared_library",

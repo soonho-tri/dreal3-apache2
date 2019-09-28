@@ -35,16 +35,16 @@ github_archive(
 github_archive(
     name = "ezoptionparser",  # MIT
     build_file = "//tools:ezoptionparser.BUILD.bazel",
-    commit = "e6fb851748cf7a613f4dd125e2a1dc4da34ec760",
+    commit = "94bc81269eb500fb188727777e1ced9b15d97572",
     repository = "dreal-deps/ezoptionparser",
-    sha256 = "da2bda7b10c071478a19ac01167605c1efec1770defb3f5bbf4b801c8a0faf62",
+    sha256 = "81f36ac21d7a1c25711da3b9f82ee2cf9588d207328781d9db116a54ba1bf7fb",
 )
 
 github_archive(
     name = "com_google_googletest",  # GOOGLE
-    commit = "9a502a5b14b4a6160103c1f2c64331772878d86a",  # 20190108
+    commit = "72adf7a4155b6642da1e6761678fe546590c0269",  # 20190927
     repository = "google/googletest",
-    sha256 = "6b2df434f90104376713c4fb666f2c97a7375edc2e576bcb7dde4eccb291b959",
+    sha256 = "47c24c0692955b61dbfcafdc9282a7b58135e6e30ed054efedf2d207df71da9d",
 )
 
 load("//dreal:workspace.bzl", "dreal_workspace")
