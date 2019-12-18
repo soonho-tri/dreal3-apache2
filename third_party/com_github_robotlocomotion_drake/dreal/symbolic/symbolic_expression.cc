@@ -46,36 +46,6 @@ bool is_integer(const double v) {
   return modf(v, &intpart) == 0.0;
 }
 
-// Negates an addition expression.
-// - (E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-Expression NegateAddition(const ExpressionAdd* e) {
-  return ExpressionAddFactory{e}.Negate().GetExpression();
-}
-
-// Negates an addition expression.
-// - (E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-Expression NegateAddition(ExpressionAdd* e) {
-  return ExpressionAddFactory{e->get_constant(),
-                              std::move(e->get_mutable_expr_to_coeff_map())}
-      .Negate()
-      .GetExpression();
-}
-
-// Negates a multiplication expression.
-// - (c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-Expression NegateMultiplication(const ExpressionMul* e) {
-  return ExpressionMulFactory{e}.Negate().GetExpression();
-}
-
-// Negates a multiplication expression.
-// - (c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-Expression NegateMultiplication(ExpressionMul* e) {
-  return ExpressionMulFactory{e->get_constant(),
-                              std::move(e->get_mutable_base_to_exponent_map())}
-      .Negate()
-      .GetExpression();
-}
-
 }  // namespace
 
 Expression::Expression(const Expression& e) : ptr_{e.ptr_} {
@@ -295,18 +265,7 @@ Expression operator+(Expression&& lhs, const Expression& rhs) {
   return lhs += rhs;
 }
 
-Expression operator+(Expression&& lhs, Expression&& rhs) {
-  if (is_addition(lhs) && is_addition(rhs)) {
-    if (to_addition(rhs)->get_expr_to_coeff_map().size() >
-        to_addition(lhs)->get_expr_to_coeff_map().size()) {
-      return rhs += lhs;
-    }
-  }
-  if (is_addition(rhs)) {
-    return rhs += lhs;
-  }
-  return lhs += rhs;
-}
+Expression operator+(Expression&& lhs, Expression&& rhs) { return lhs += rhs; }
 
 // NOLINTNEXTLINE(runtime/references) per C++ standard signature.
 Expression& operator+=(Expression& lhs, const Expression& rhs) {
@@ -322,37 +281,7 @@ Expression& operator+=(Expression& lhs, const Expression& rhs) {
   if (is_constant(lhs) && is_constant(rhs)) {
     return lhs = get_constant_value(lhs) + get_constant_value(rhs);
   }
-
-  // Simplification: flattening. To build a new expression, we use
-  // ExpressionAddFactory which holds intermediate terms and does
-  // simplifications internally.
-  if (is_addition(lhs)) {
-    if (lhs.ptr_->use_count() == 1) {
-      return lhs =
-                 ExpressionAddFactory{
-                     get_constant_in_addition(lhs),
-                     std::move(
-                         to_addition(lhs)->get_mutable_expr_to_coeff_map())}
-                     .AddExpression(rhs)
-                     .GetExpression();
-    } else {
-      return lhs = ExpressionAddFactory{to_addition(lhs)}
-                       .AddExpression(rhs)
-                       .GetExpression();
-    }
-  }
-  if (is_addition(rhs)) {
-    // 2. lhs + (e_1 + ... + e_n)
-    return lhs = ExpressionAddFactory{to_addition(rhs)}
-                     .AddExpression(lhs)
-                     .GetExpression();
-  } else {
-    // nothing to flatten: return lhs + rhs
-    return lhs = ExpressionAddFactory{}
-                     .AddExpression(lhs)
-                     .AddExpression(rhs)
-                     .GetExpression();
-  }
+  return lhs = Expression{new ExpressionAdd(lhs, rhs)};
 }
 
 Expression& Expression::operator++() {
@@ -395,30 +324,23 @@ Expression operator-(const Expression& e) {
   if (is_constant(e)) {
     return Expression{-get_constant_value(e)};
   }
-  // Simplification: push '-' inside over '+'.
-  // -(E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-  if (is_addition(e)) {
-    return NegateAddition(to_addition(e));
-  }
-  // Simplification: push '-' inside over '*'.
-  // -(c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-  if (is_multiplication(e)) {
-    return NegateMultiplication(to_multiplication(e));
-  }
+  // TODO(sooonho): Simplification?
+  // -1 * (c * e) => (-c) * e
+  // -1 * (e * c) => e * (-c)
   return -1 * e;
 }
 
-Expression operator-(Expression&& e) {
-  if (e.ptr_->use_count() == 1) {
-    if (is_addition(e)) {
-      return NegateAddition(to_addition(e));
-    }
-    if (is_multiplication(e)) {
-      return NegateMultiplication(to_multiplication(e));
-    }
-  }
-  return -e;
-}
+// Expression operator-(Expression&& e) {
+//   if (e.ptr_->use_count() == 1) {
+//     if (is_addition(e)) {
+//       return NegateAddition(to_addition(e));
+//     }
+//     if (is_multiplication(e)) {
+//       return NegateMultiplication(to_multiplication(e));
+//     }
+//   }
+//   return -e;
+// }
 
 Expression& Expression::operator--() {
   *this -= Expression::One();
@@ -432,6 +354,7 @@ Expression Expression::operator--(int) {
 }
 
 Expression operator*(const Expression& lhs, const Expression& rhs) {
+  // TODO(soonho): Revisit these overloading.
   Expression lhs_copy{lhs};
   lhs_copy *= rhs;
   return lhs_copy;
@@ -445,18 +368,7 @@ Expression operator*(Expression&& lhs, const Expression& rhs) {
   return lhs *= rhs;
 }
 
-Expression operator*(Expression&& lhs, Expression&& rhs) {
-  if (is_multiplication(lhs) && is_multiplication(rhs)) {
-    if (to_multiplication(rhs)->get_base_to_exponent_map().size() >
-        to_multiplication(lhs)->get_base_to_exponent_map().size()) {
-      return rhs *= lhs;
-    }
-  }
-  if (is_multiplication(rhs)) {
-    return rhs *= lhs;
-  }
-  return lhs *= rhs;
-}
+Expression operator*(Expression&& lhs, Expression&& rhs) { return lhs *= rhs; }
 
 // NOLINTNEXTLINE(runtime/references) per C++ standard signature.
 Expression& operator*=(Expression& lhs, const Expression& rhs) {
@@ -481,31 +393,6 @@ Expression& operator*=(Expression& lhs, const Expression& rhs) {
   // Simplification: (c / E) * rhs => (c * rhs) / E
   if (is_division(lhs) && is_constant(get_first_argument(lhs))) {
     return lhs = (get_first_argument(lhs) * rhs) / get_second_argument(lhs);
-  }
-  if (is_neg_one(lhs)) {
-    if (is_addition(rhs)) {
-      // Simplification: push '-' inside over '+'.
-      // -1 * (E_1 + ... + E_n) => (-E_1 + ... + -E_n)
-      return lhs = NegateAddition(to_addition(rhs));
-    }
-    if (is_multiplication(rhs)) {
-      // Simplification: push '-' inside over '*'.
-      // -1 * (c0 * E_1 * ... * E_n) => (-c0 * E_1 * ... * E_n)
-      return lhs = NegateMultiplication(to_multiplication(rhs));
-    }
-  }
-
-  if (is_neg_one(rhs)) {
-    if (is_addition(lhs)) {
-      // Simplification: push '-' inside over '+'.
-      // (E_1 + ... + E_n) * -1 => (-E_1 + ... + -E_n)
-      return lhs = NegateAddition(to_addition(lhs));
-    }
-    if (is_multiplication(lhs)) {
-      // Simplification: push '-' inside over '*'.
-      // (c0 * E_1 * ... * E_n) * -1 => (-c0 * E_1 * ... * E_n)
-      return lhs = NegateMultiplication(to_multiplication(lhs));
-    }
   }
 
   // Simplification: 0 * E => 0
@@ -556,44 +443,7 @@ Expression& operator*=(Expression& lhs, const Expression& rhs) {
     }
   }
 
-  // Simplification: flattening
-  ExpressionMulFactory mul_factory{};
-  if (is_multiplication(lhs)) {
-    // (e_1 * ... * e_n) * rhs
-    if (lhs.ptr_->use_count() == 1) {
-      return lhs =
-                 ExpressionMulFactory{
-                     get_constant_in_multiplication(lhs),
-                     std::move(to_multiplication(lhs)
-                                   ->get_mutable_base_to_exponent_map())}
-                     .AddExpression(rhs)
-                     .GetExpression();
-    } else {
-      return lhs = ExpressionMulFactory{to_multiplication(lhs)}
-                       .AddExpression(rhs)
-                       .GetExpression();
-    }
-  } else {
-    if (is_multiplication(rhs)) {
-      // e_1 * (e_2 * ... * e_n) -> (e_2 * ... * e_n * e_1)
-      //
-      // Note that we do not preserve the original ordering because * is
-      // associative.
-      mul_factory = to_multiplication(rhs);
-      mul_factory.AddExpression(lhs);
-    } else {
-      // Simplification: x * x => x^2 (=pow(x,2))
-      if (lhs.EqualTo(rhs)) {
-        lhs = pow(lhs, 2.0);
-        return lhs;
-      }
-      // nothing to flatten
-      mul_factory.AddExpression(lhs);
-      mul_factory.AddExpression(rhs);
-    }
-  }
-  lhs = mul_factory.GetExpression();
-  return lhs;
+  return lhs = Expression{new ExpressionMul(lhs, rhs)};
 }
 
 Expression operator/(Expression lhs, const Expression& rhs) {
@@ -639,22 +489,22 @@ Expression Sum(const std::vector<Expression>& expressions) {
   if (expressions.empty()) {
     return Expression::Zero();
   }
-  ExpressionAddFactory f;
+  Expression ret;
   for (const Expression& e : expressions) {
-    f.AddExpression(e);
+    ret += e;
   }
-  return f.GetExpression();
+  return ret;
 }
 
 Expression Prod(const std::vector<Expression>& expressions) {
   if (expressions.empty()) {
     return Expression::One();
   }
-  ExpressionMulFactory f;
+  Expression ret;
   for (const Expression& e : expressions) {
-    f.AddExpression(e);
+    ret *= e;
   }
-  return f.GetExpression();
+  return ret;
 }
 
 Expression real_constant(const double lb, const double ub,
@@ -928,21 +778,6 @@ const Expression& get_first_argument(const Expression& e) {
 const Expression& get_second_argument(const Expression& e) {
   return to_binary(e)->get_second_argument();
 }
-double get_constant_in_addition(const Expression& e) {
-  return to_addition(e)->get_constant();
-}
-const map<Expression, double>& get_expr_to_coeff_map_in_addition(
-    const Expression& e) {
-  return to_addition(e)->get_expr_to_coeff_map();
-}
-double get_constant_in_multiplication(const Expression& e) {
-  return to_multiplication(e)->get_constant();
-}
-const map<Expression, Expression>& get_base_to_exponent_map_in_multiplication(
-    const Expression& e) {
-  return to_multiplication(e)->get_base_to_exponent_map();
-}
-
 const Formula& get_conditional_formula(const Expression& e) {
   return to_if_then_else(e)->get_conditional_formula();
 }

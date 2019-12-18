@@ -419,7 +419,7 @@ ExpressionNaN::ExpressionNaN()
   // meaning.
 }
 
-bool ExpressionNaN::EqualTo(const ExpressionCell& e) const {
+bool ExpressionNaN::EqualTo(const ExpressionCell&) const {
   // Expression::EqualTo guarantees the following assertion.
   assert(get_kind() == e.get_kind());
   return true;
@@ -450,560 +450,98 @@ Expression ExpressionNaN::Differentiate(const Variable&) const {
 
 ostream& ExpressionNaN::Display(ostream& os) const { return os << "NaN"; }
 
-ExpressionAdd::ExpressionAdd(const double constant,
-                             map<Expression, double> expr_to_coeff_map)
-    : ExpressionCell{ExpressionKind::Add,
-                     hash_combine(hash<double>{}(constant), expr_to_coeff_map),
-                     determine_polynomial(expr_to_coeff_map),
-                     ExtractVariables(expr_to_coeff_map)},
-      constant_(constant),
-      expr_to_coeff_map_{std::move(expr_to_coeff_map)} {
-  assert(!expr_to_coeff_map_.empty());
-}
-
-Variables ExpressionAdd::ExtractVariables(
-    const std::map<Expression, double>& expr_to_coeff_map) {
-  Variables ret{};
-  for (const auto& p : expr_to_coeff_map) {
-    ret.insert(p.first.GetVariables());
-  }
-  return ret;
-}
-
-bool ExpressionAdd::EqualTo(const ExpressionCell& e) const {
-  // Expression::EqualTo guarantees the following assertion.
-  assert(get_kind() == e.get_kind());
-  const ExpressionAdd& add_e{static_cast<const ExpressionAdd&>(e)};
-  // Compare constant.
-  if (constant_ != add_e.constant_) {
-    return false;
-  }
-  return equal(expr_to_coeff_map_.cbegin(), expr_to_coeff_map_.cend(),
-               add_e.expr_to_coeff_map_.cbegin(),
-               add_e.expr_to_coeff_map_.cend(),
-               [](const pair<const Expression, double>& p1,
-                  const pair<const Expression, double>& p2) {
-                 return p1.first.EqualTo(p2.first) && p1.second == p2.second;
-               });
-}
-
-bool ExpressionAdd::Less(const ExpressionCell& e) const {
-  // Expression::Less guarantees the following assertion.
-  assert(get_kind() == e.get_kind());
-  const ExpressionAdd& add_e{static_cast<const ExpressionAdd&>(e)};
-  // Compare the constants.
-  if (constant_ < add_e.constant_) {
-    return true;
-  }
-  if (add_e.constant_ < constant_) {
-    return false;
-  }
-  // Compare the two maps.
-  return lexicographical_compare(
-      expr_to_coeff_map_.cbegin(), expr_to_coeff_map_.cend(),
-      add_e.expr_to_coeff_map_.cbegin(), add_e.expr_to_coeff_map_.cend(),
-      [](const pair<const Expression, double>& p1,
-         const pair<const Expression, double>& p2) {
-        const Expression& term1{p1.first};
-        const Expression& term2{p2.first};
-        if (term1.Less(term2)) {
-          return true;
-        }
-        if (term2.Less(term1)) {
-          return false;
-        }
-        const double coeff1{p1.second};
-        const double coeff2{p2.second};
-        return coeff1 < coeff2;
-      });
-}
-
-double ExpressionAdd::Evaluate(const Environment& env) const {
-  return accumulate(
-      expr_to_coeff_map_.begin(), expr_to_coeff_map_.end(), constant_,
-      [&env](const double init, const pair<const Expression, double>& p) {
-        return init + p.first.Evaluate(env) * p.second;
-      });
-}
+ExpressionAdd::ExpressionAdd(const Expression& e1, const Expression& e2)
+    : BinaryExpressionCell{ExpressionKind::Add, e1, e2,
+                           e1.is_polynomial() && e2.is_polynomial()} {}
 
 Expression ExpressionAdd::Expand() {
-  //   (c0 + c1 * e_1 + ... + c_n * e_n).Expand()
-  // =  c0 + c1 * e_1.Expand() + ... + c_n * e_n.Expand()
-  Expression ret{constant_};
-  for (const auto& p : expr_to_coeff_map_) {
-    const Expression& e_i{p.first};
-    const double c_i{p.second};
-    ret += ExpandMultiplication(e_i.Expand(), c_i);
+  const Expression& e1{get_first_argument()};
+  const Expression& e2{get_second_argument()};
+  const Expression e1_expand{e1.Expand()};
+  const Expression e2_expand{e2.Expand()};
+  if (!e1.EqualTo(e1_expand) || !e2.EqualTo(e2_expand)) {
+    return e1_expand + e2_expand;
+  } else {
+    return GetExpression();
   }
-  return ret;
 }
 
 Expression ExpressionAdd::Substitute(const ExpressionSubstitution& expr_subst,
                                      const FormulaSubstitution& formula_subst) {
-  Expression ret{constant_};
-  for (const auto& p : expr_to_coeff_map_) {
-    const Expression& e_i{p.first};
-    const double c_i{p.second};
-    ret += e_i.Substitute(expr_subst, formula_subst) * c_i;
+  const Expression& e1{get_first_argument()};
+  const Expression& e2{get_second_argument()};
+  const Expression e1_subst{e1.Substitute(expr_subst, formula_subst)};
+  const Expression e2_subst{e2.Substitute(expr_subst, formula_subst)};
+  if (!e1.EqualTo(e1_subst) || !e2.EqualTo(e2_subst)) {
+    // If anything changed, create and return a new one.
+    return e1_subst + e2_subst;
+  } else {
+    // Otherwise, return self.
+    return GetExpression();
   }
-  return ret;
 }
 
 Expression ExpressionAdd::Differentiate(const Variable& x) const {
-  //   ∂/∂x (c_0 + c_1 * f_1 + ... + c_n * f_n)
-  // = (∂/∂x c_0) + (∂/∂x c_1 * f_1) + ... + (∂/∂x c_n * f_n)
-  // =  0.0       + c_1 * (∂/∂x f_1) + ... + c_n * (∂/∂x f_n)
-  Expression ret{Expression::Zero()};
-  for (const auto& p : expr_to_coeff_map_) {
-    const Expression& e_i{p.first};
-    const double c_i{p.second};
-    ret += c_i * e_i.Differentiate(x);
-  }
-  return ret;
+  // ∂/∂x (f + g) = (∂/∂x f) + (∂/∂x g)
+  const Expression& f{get_first_argument()};
+  const Expression& g{get_second_argument()};
+  return (f.Differentiate(x) + g.Differentiate(x));
 }
 
 ostream& ExpressionAdd::Display(ostream& os) const {
-  assert(!expr_to_coeff_map_.empty());
-  bool print_plus{false};
-  os << "(";
-  if (constant_ != 0.0) {
-    os << setprecision(numeric_limits<double>::max_digits10) << constant_;
-    print_plus = true;
-  }
-  for (auto& p : expr_to_coeff_map_) {
-    DisplayTerm(os, print_plus, p.second, p.first);
-    print_plus = true;
-  }
-  os << ")";
-  return os;
+  return os << "(" << get_first_argument() << " + " << get_second_argument()
+            << ")";
 }
 
-ostream& ExpressionAdd::DisplayTerm(ostream& os, const bool print_plus,
-                                    const double coeff,
-                                    const Expression& term) const {
-  assert(coeff != 0.0);
-  if (coeff > 0.0) {
-    if (print_plus) {
-      os << " + ";
-    }
-    // Do not print "1 * t"
-    if (coeff != 1.0) {
-      os << coeff << " * ";
-    }
-  } else {
-    // Instead of printing "+ (- E)", just print "- E".
-    os << " - ";
-    if (coeff != -1.0) {
-      os << (-coeff) << " * ";
-    }
-  }
-  os << term;
-  return os;
+double ExpressionAdd::DoEvaluate(const double v1, const double v2) const {
+  return v1 + v2;
 }
 
-ExpressionAddFactory::ExpressionAddFactory(
-    const double constant, map<Expression, double> expr_to_coeff_map)
-    : get_expression_is_called_{false},
-      constant_{constant},
-      expr_to_coeff_map_{std::move(expr_to_coeff_map)} {}
-
-ExpressionAddFactory::ExpressionAddFactory(const ExpressionAdd* const ptr)
-    : ExpressionAddFactory{ptr->get_constant(), ptr->get_expr_to_coeff_map()} {}
-
-ExpressionAddFactory& ExpressionAddFactory::AddExpression(const Expression& e) {
-  if (is_constant(e)) {
-    const double v{get_constant_value(e)};
-    return AddConstant(v);
-  }
-  if (is_addition(e)) {
-    // Flattening
-    return Add(to_addition(e));
-  }
-  if (is_multiplication(e)) {
-    const double constant{get_constant_in_multiplication(e)};
-    if (constant != 1.0) {
-      // Instead of adding (1.0 * (constant * b1^t1 ... bn^tn)),
-      // add (constant, 1.0 * b1^t1 ... bn^tn).
-      return AddTerm(constant,
-                     ExpressionMulFactory(
-                         1.0, get_base_to_exponent_map_in_multiplication(e))
-                         .GetExpression());
-    }
-  }
-  return AddTerm(1.0, e);
-}
-
-ExpressionAddFactory& ExpressionAddFactory::Add(
-    const ExpressionAdd* const ptr) {
-  AddConstant(ptr->get_constant());
-  return AddMap(ptr->get_expr_to_coeff_map());
-}
-
-ExpressionAddFactory& ExpressionAddFactory::operator=(
-    const ExpressionAdd* const ptr) {
-  constant_ = ptr->get_constant();
-  expr_to_coeff_map_ = ptr->get_expr_to_coeff_map();
-  return *this;
-}
-
-ExpressionAddFactory& ExpressionAddFactory::Negate() {
-  constant_ = -constant_;
-  for (auto& p : expr_to_coeff_map_) {
-    p.second = -p.second;
-  }
-  return *this;
-}
-
-Expression ExpressionAddFactory::GetExpression() {
-  if (get_expression_is_called_) {
-    throw runtime_error(
-        "ExpressionAddFactory::GetExpression() is already called, and it "
-        "should not be invoked again.");
-  }
-  get_expression_is_called_ = true;
-  if (expr_to_coeff_map_.empty()) {
-    return Expression{constant_};
-  }
-  if (constant_ == 0.0 && expr_to_coeff_map_.size() == 1U) {
-    // 0.0 + c1 * t1 -> c1 * t1
-    const auto it(expr_to_coeff_map_.cbegin());
-    return it->first * it->second;
-  }
-  return Expression{
-      new ExpressionAdd(constant_, std::move(expr_to_coeff_map_))};
-}
-
-ExpressionAddFactory& ExpressionAddFactory::AddConstant(const double constant) {
-  constant_ += constant;
-  return *this;
-}
-
-ExpressionAddFactory& ExpressionAddFactory::AddTerm(const double coeff,
-                                                    const Expression& term) {
-  assert(!is_constant(term));
-
-  const auto it(expr_to_coeff_map_.find(term));
-  if (it != expr_to_coeff_map_.end()) {
-    // Case1: term is already in the map
-    double& this_coeff{it->second};
-    this_coeff += coeff;
-    if (this_coeff == 0.0) {
-      // If the coefficient becomes zero, remove the entry.
-      // TODO(soonho-tri): The following operation is not sound since it cancels
-      // `term` which might contain 0/0 problems.
-      expr_to_coeff_map_.erase(it);
-    }
-  } else {
-    // Case2: term is not found in expr_to_coeff_map_.
-    // Add the entry (term, coeff).
-    expr_to_coeff_map_.emplace(term, coeff);
-  }
-  return *this;
-}
-
-ExpressionAddFactory& ExpressionAddFactory::AddMap(
-    const map<Expression, double>& expr_to_coeff_map) {
-  for (const auto& p : expr_to_coeff_map) {
-    AddTerm(p.second, p.first);
-  }
-  return *this;
-}
-
-ExpressionMul::ExpressionMul(const double constant,
-                             map<Expression, Expression> base_to_exponent_map)
-    : ExpressionCell{ExpressionKind::Mul,
-                     hash_combine(hash<double>{}(constant),
-                                  base_to_exponent_map),
-                     determine_polynomial(base_to_exponent_map),
-                     ExtractVariables(base_to_exponent_map)},
-      constant_(constant),
-      base_to_exponent_map_{std::move(base_to_exponent_map)} {
-  assert(!base_to_exponent_map_.empty());
-}
-
-Variables ExpressionMul::ExtractVariables(
-    const std::map<Expression, Expression>& base_to_exponent_map) {
-  Variables ret{};
-  for (const auto& p : base_to_exponent_map) {
-    ret.insert(p.first.GetVariables());
-    ret.insert(p.second.GetVariables());
-  }
-  return ret;
-}
-
-bool ExpressionMul::EqualTo(const ExpressionCell& e) const {
-  // Expression::EqualTo guarantees the following assertion.
-  assert(get_kind() == e.get_kind());
-  const ExpressionMul& mul_e{static_cast<const ExpressionMul&>(e)};
-  // Compare constant.
-  if (constant_ != mul_e.constant_) {
-    return false;
-  }
-  // Check each (term, coeff) pairs in two maps.
-  return equal(
-      base_to_exponent_map_.cbegin(), base_to_exponent_map_.cend(),
-      mul_e.base_to_exponent_map_.cbegin(), mul_e.base_to_exponent_map_.cend(),
-      [](const pair<const Expression, Expression>& p1,
-         const pair<const Expression, Expression>& p2) {
-        return p1.first.EqualTo(p2.first) && p1.second.EqualTo(p2.second);
-      });
-}
-
-bool ExpressionMul::Less(const ExpressionCell& e) const {
-  // Expression::Less guarantees the following assertion.
-  assert(get_kind() == e.get_kind());
-  const ExpressionMul& mul_e{static_cast<const ExpressionMul&>(e)};
-  // Compare the constants.
-  if (constant_ < mul_e.constant_) {
-    return true;
-  }
-  if (mul_e.constant_ < constant_) {
-    return false;
-  }
-  // Compare the two maps.
-  return lexicographical_compare(
-      base_to_exponent_map_.cbegin(), base_to_exponent_map_.cend(),
-      mul_e.base_to_exponent_map_.cbegin(), mul_e.base_to_exponent_map_.cend(),
-      [](const pair<const Expression, Expression>& p1,
-         const pair<const Expression, Expression>& p2) {
-        const Expression& base1{p1.first};
-        const Expression& base2{p2.first};
-        if (base1.Less(base2)) {
-          return true;
-        }
-        if (base2.Less(base1)) {
-          return false;
-        }
-        const Expression& exp1{p1.second};
-        const Expression& exp2{p2.second};
-        return exp1.Less(exp2);
-      });
-}
-
-double ExpressionMul::Evaluate(const Environment& env) const {
-  return accumulate(
-      base_to_exponent_map_.begin(), base_to_exponent_map_.end(), constant_,
-      [&env](const double init, const pair<const Expression, Expression>& p) {
-        return init * std::pow(p.first.Evaluate(env), p.second.Evaluate(env));
-      });
-}
+ExpressionMul::ExpressionMul(const Expression& e1, const Expression& e2)
+    : BinaryExpressionCell{ExpressionKind::Add, e1, e2,
+                           e1.is_polynomial() && e2.is_polynomial()} {}
 
 Expression ExpressionMul::Expand() {
-  //   (c * ∏ᵢ pow(bᵢ, eᵢ)).Expand()
-  // = c * ExpandMultiplication(∏ ExpandPow(bᵢ.Expand(), eᵢ.Expand()))
-  Expression ret{constant_};
-  for (const auto& p : base_to_exponent_map_) {
-    const Expression& b_i{p.first};
-    const Expression& e_i{p.second};
-    ret = ExpandMultiplication(ret, ExpandPow(b_i.Expand(), e_i.Expand()));
+  const Expression& e1{get_first_argument()};
+  const Expression& e2{get_second_argument()};
+  const Expression e1_expand{e1.Expand()};
+  const Expression e2_expand{e2.Expand()};
+  if (!e1.EqualTo(e1_expand) || !e2.EqualTo(e2_expand)) {
+    return ExpandMultiplication(e1_expand, e2_expand);
+  } else {
+    return GetExpression();
   }
-  return ret;
 }
 
 Expression ExpressionMul::Substitute(const ExpressionSubstitution& expr_subst,
                                      const FormulaSubstitution& formula_subst) {
-  Expression ret{constant_};
-  for (const auto& p : base_to_exponent_map_) {
-    const Expression& b_i{p.first};
-    const Expression& e_i{p.second};
-    ret *= pow(b_i.Substitute(expr_subst, formula_subst),
-               e_i.Substitute(expr_subst, formula_subst));
+  const Expression& e1{get_first_argument()};
+  const Expression& e2{get_second_argument()};
+  const Expression e1_subst{e1.Substitute(expr_subst, formula_subst)};
+  const Expression e2_subst{e2.Substitute(expr_subst, formula_subst)};
+  if (!e1.EqualTo(e1_subst) || !e2.EqualTo(e2_subst)) {
+    // If anything changed, create and return a new one.
+    return e1_subst * e2_subst;
+  } else {
+    // Otherwise, return self.
+    return GetExpression();
   }
-  return ret;
-}
-
-// Computes ∂/∂x pow(f, g).
-Expression DifferentiatePow(const Expression& f, const Expression& g,
-                            const Variable& x) {
-  if (is_constant(g)) {
-    const Expression& n{g};  // alias n = g
-    // Special case where exponent is a constant:
-    //     ∂/∂x pow(f, n) = n * pow(f, n - 1) * ∂/∂x f
-    return n * pow(f, n - 1) * f.Differentiate(x);
-  }
-  if (is_constant(f)) {
-    const Expression& n{f};  // alias n = f
-    // Special case where base is a constant:
-    //     ∂/∂x pow(n, g) = log(n) * pow(n, g) * ∂/∂x g
-    return log(n) * pow(n, g) * g.Differentiate(x);
-  }
-  // General case:
-  //    ∂/∂x pow(f, g)
-  // = ∂/∂f pow(f, g) * ∂/∂x f + ∂/∂g pow(f, g) * ∂/∂x g
-  // = g * pow(f, g - 1) * ∂/∂x f + log(f) * pow(f, g) * ∂/∂x g
-  // = pow(f, g - 1) * (g * ∂/∂x f + log(f) * f * ∂/∂x g)
-  return pow(f, g - 1) *
-         (g * f.Differentiate(x) + log(f) * f * g.Differentiate(x));
 }
 
 Expression ExpressionMul::Differentiate(const Variable& x) const {
-  // ∂/∂x (c   * f_1^g_1  * f_2^g_2        * ... * f_n^g_n
-  //= c * [expr * (∂/∂x f_1^g_1) / f_1^g_1 +
-  //       expr * (∂/∂x f_2^g_2) / f_2^g_2 +
-  //                      ...              +
-  //       expr * (∂/∂x f_n^g_n) / f_n^g_n]
-  //
-  // where expr = (f_1^g_1 * f_2^g_2 * ... * f_n^g_n).
-  const map<Expression, Expression>& m{base_to_exponent_map_};
-  Expression ret{Expression::Zero()};
-  const Expression expr{
-      ExpressionMulFactory{1.0, base_to_exponent_map_}.GetExpression()};
-  for (const auto& term : m) {
-    const Expression& base{term.first};
-    const Expression& exponent{term.second};
-    ret += expr * DifferentiatePow(base, exponent, x) * pow(base, -exponent);
-  }
-  return constant_ * ret;
+  // ∂/∂x (f g) = (∂/∂x f) * g + f * (∂/∂x g)
+  const Expression& f{get_first_argument()};
+  const Expression& g{get_second_argument()};
+  return (f.Differentiate(x) * g) + (f * g.Differentiate(x));
 }
 
 ostream& ExpressionMul::Display(ostream& os) const {
-  assert(!base_to_exponent_map_.empty());
-  bool print_mul{false};
-  os << "(";
-  if (constant_ != 1.0) {
-    os << setprecision(numeric_limits<double>::max_digits10) << constant_;
-    print_mul = true;
-  }
-  for (auto& p : base_to_exponent_map_) {
-    DisplayTerm(os, print_mul, p.first, p.second);
-    print_mul = true;
-  }
-  os << ")";
-  return os;
+  return os << "(" << get_first_argument() << " * " << get_second_argument()
+            << ")";
 }
 
-ostream& ExpressionMul::DisplayTerm(ostream& os, const bool print_mul,
-                                    const Expression& base,
-                                    const Expression& exponent) const {
-  // Print " * pow(base, exponent)" if print_mul is true
-  // Print "pow(base, exponent)" if print_mul is false
-  // Print "base" instead of "pow(base, exponent)" if exponent == 1.0
-  if (print_mul) {
-    os << " * ";
-  }
-  if (is_one(exponent)) {
-    os << base;
-  } else {
-    os << "pow(" << base << ", " << exponent << ")";
-  }
-  return os;
-}
-
-ExpressionMulFactory::ExpressionMulFactory(
-    const double constant, map<Expression, Expression> base_to_exponent_map)
-    : get_expression_is_called_{false},
-      constant_{constant},
-      base_to_exponent_map_{std::move(base_to_exponent_map)} {}
-
-ExpressionMulFactory::ExpressionMulFactory(const ExpressionMul* const ptr)
-    : ExpressionMulFactory{ptr->get_constant(),
-                           ptr->get_base_to_exponent_map()} {}
-
-ExpressionMulFactory& ExpressionMulFactory::AddExpression(const Expression& e) {
-  if (is_constant(e)) {
-    return AddConstant(get_constant_value(e));
-  }
-  if (is_multiplication(e)) {
-    // Flattening
-    return Add(to_multiplication(e));
-  }
-  if (is_pow(e)) {
-    return AddTerm(get_first_argument(e), get_second_argument(e));
-  }
-  // Add e^1
-  return AddTerm(e, Expression{1.0});
-}
-
-ExpressionMulFactory& ExpressionMulFactory::Add(
-    const ExpressionMul* const ptr) {
-  AddConstant(ptr->get_constant());
-  return AddMap(ptr->get_base_to_exponent_map());
-}
-
-ExpressionMulFactory& ExpressionMulFactory::operator=(
-    const ExpressionMul* const ptr) {
-  constant_ = ptr->get_constant();
-  base_to_exponent_map_ = ptr->get_base_to_exponent_map();
-  return *this;
-}
-
-ExpressionMulFactory& ExpressionMulFactory::Negate() {
-  constant_ = -constant_;
-  return *this;
-}
-
-Expression ExpressionMulFactory::GetExpression() {
-  if (get_expression_is_called_) {
-    throw runtime_error(
-        "ExpressionMulFactory::GetExpression() is already called, and it "
-        "should not be invoked again.");
-  }
-  get_expression_is_called_ = true;
-  if (base_to_exponent_map_.empty()) {
-    return Expression{constant_};
-  }
-  if (constant_ == 1.0 && base_to_exponent_map_.size() == 1U) {
-    // 1.0 * c1^t1 -> c1^t1
-    const auto it(base_to_exponent_map_.cbegin());
-    return pow(it->first, it->second);
-  }
-  return Expression{
-      new ExpressionMul(constant_, std::move(base_to_exponent_map_))};
-}
-
-ExpressionMulFactory& ExpressionMulFactory::AddConstant(const double constant) {
-  constant_ *= constant;
-  return *this;
-}
-
-ExpressionMulFactory& ExpressionMulFactory::AddTerm(
-    const Expression& base, const Expression& exponent) {
-  // The following assertion holds because of
-  // ExpressionMulFactory::AddExpression.
-  assert(!(is_constant(base) && is_constant(exponent)));
-  if (is_pow(base) && is_constant(exponent)) {
-    const Expression& e2{get_second_argument(base)};
-    if (is_constant(e2)) {
-      const double e2_value{get_constant_value(e2)};
-      if (is_integer(e2_value)) {
-        // If base = pow(e1, e2) and both of e2 and exponent are
-        // integers, then add (e1, e2 * exponent).
-        //
-        // Example: (x^2)^3 => x^(2 * 3)
-        const Expression& e1{get_first_argument(base)};
-        return AddTerm(e1, e2 * exponent);
-      }
-    }
-  }
-
-  const auto it(base_to_exponent_map_.find(base));
-  if (it != base_to_exponent_map_.end()) {
-    // base is already in map.
-    // (= b1^e1 * ... * (base^this_exponent) * ... * en^bn).
-    // Update it to be (... * (base^(this_exponent + exponent)) * ...)
-    // Example: x^3 * x^2 => x^5
-    Expression& this_exponent = it->second;
-    this_exponent += exponent;
-    if (is_zero(this_exponent)) {
-      // If it ends up with base^0 (= 1.0) then remove this entry from the map.
-      // TODO(soonho-tri): The following operation is not sound since it can
-      // cancels `base` which might include 0/0 problems.
-      base_to_exponent_map_.erase(it);
-    }
-  } else {
-    // Product is not found in base_to_exponent_map_. Add the entry (base,
-    // exponent).
-    base_to_exponent_map_.emplace(base, exponent);
-  }
-  return *this;
-}
-
-ExpressionMulFactory& ExpressionMulFactory::AddMap(
-    const map<Expression, Expression>& base_to_exponent_map) {
-  for (const auto& p : base_to_exponent_map) {
-    AddTerm(p.first, p.second);
-  }
-  return *this;
+double ExpressionMul::DoEvaluate(const double v1, const double v2) const {
+  return v1 * v2;
 }
 
 ExpressionDiv::ExpressionDiv(const Expression& e1, const Expression& e2)
@@ -1041,22 +579,18 @@ class DivExpandVisitor {
 
  private:
   Expression VisitAddition(const Expression& e, const double n) const {
-    // e =  (c₀ + ∑ᵢ (cᵢ * eᵢ)) / n
-    //   => c₀/n + ∑ᵢ (cᵢ / n * eᵢ)
-    const double constant{get_constant_in_addition(e)};
-    ExpressionAddFactory factory(constant / n, {});
-    for (const pair<const Expression, double>& p :
-         get_expr_to_coeff_map_in_addition(e)) {
-      factory.AddExpression(p.second / n * p.first);
-    }
-    return factory.GetExpression();
+    // e =  (e₁ + e₂) / n
+    //   => (e₁ / n + e₂ / n)
+    const Expression& e1{get_first_argument(e)};
+    const Expression& e2{get_second_argument(e)};
+    return (e1 / n) + (e2 / n);
   }
   Expression VisitMultiplication(const Expression& e, const double n) const {
-    // e =  (c₀ * ∏ᵢ (bᵢ * eᵢ)) / n
-    //   => c₀ / n * ∏ᵢ (bᵢ * eᵢ)
-    return ExpressionMulFactory{get_constant_in_multiplication(e) / n,
-                                get_base_to_exponent_map_in_multiplication(e)}
-        .GetExpression();
+    // e =  (e₁ * e₂) / n
+    //   => (e₁ / n) * e₂
+    const Expression& e1{get_first_argument(e)};
+    const Expression& e2{get_second_argument(e)};
+    return (e1 / n) * e2;
   }
   Expression VisitDivision(const Expression& e, const double n) const {
     const Expression& e1{get_first_argument(e)};

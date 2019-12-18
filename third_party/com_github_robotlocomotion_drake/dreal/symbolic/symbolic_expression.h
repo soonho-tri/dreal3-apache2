@@ -654,30 +654,6 @@ const Expression& get_first_argument(const Expression& e);
  *  @pre @p e is a binary expression.
  */
 const Expression& get_second_argument(const Expression& e);
-/** Returns the constant part of the addition expression @p e. For instance,
- *  given 7 + 2 * x + 3 * y, it returns 7.
- *  @pre @p e is an addition expression.
- */
-double get_constant_in_addition(const Expression& e);
-/** Returns the map from an expression to its coefficient in the addition
- *  expression @p e. For instance, given 7 + 2 * x + 3 * y, the return value
- *  maps 'x' to 2 and 'y' to 3.
- *  @pre @p e is an addition expression.
- */
-const std::map<Expression, double>& get_expr_to_coeff_map_in_addition(
-    const Expression& e);
-/** Returns the constant part of the multiplication expression @p e. For
- *  instance, given 7 * x^2 * y^3, it returns 7.
- *  @pre @p e is a multiplication expression.
- */
-double get_constant_in_multiplication(const Expression& e);
-/** Returns the map from a base expression to its exponent expression in the
- * multiplication expression @p e. For instance, given 7 * x^2 * y^3 * z^x, the
- * return value maps 'x' to 2, 'y' to 3, and 'z' to 'x'.
- *  @pre @p e is a multiplication expression.
- */
-const std::map<Expression, Expression>&
-get_base_to_exponent_map_in_multiplication(const Expression& e);
 
 /** Returns the conditional formula in the if-then-else expression @p e.
  * @pre @p e is an if-then-else expression.

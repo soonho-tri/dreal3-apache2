@@ -281,247 +281,32 @@ class ExpressionNaN : public ExpressionCell {
   std::ostream& Display(std::ostream& os) const override;
 };
 
-/** Symbolic expression representing an addition which is a sum of products.
- *
- * @f[
- *     c_0 + \sum c_i * e_i
- * @f]
- *
- *  where @f$ c_i @f$ is a constant and @f$ e_i @f$ is a symbolic expression.
- *
- * Internally this class maintains a member variable @c constant_ to represent
- * @f$ c_0 @f$ and another member variable @c expr_to_coeff_map_ to represent a
- * mapping from an expression @f$ e_i @f$ to its coefficient @f$ c_i @f$ of
- * double.
- */
-class ExpressionAdd : public ExpressionCell {
+/** Symbolic expression representing binary addition.  */
+class ExpressionAdd : public BinaryExpressionCell {
  public:
-  /** Constructs ExpressionAdd from @p constant_term and @p term_to_coeff_map.
-   */
-  ExpressionAdd(double constant,
-                std::map<Expression, double> expr_to_coeff_map);
-  bool EqualTo(const ExpressionCell& e) const override;
-  bool Less(const ExpressionCell& e) const override;
-  double Evaluate(const Environment& env) const override;
+  ExpressionAdd(const Expression& e1, const Expression& e2);
   Expression Expand() override;
   Expression Substitute(const ExpressionSubstitution& expr_subst,
                         const FormulaSubstitution& formula_subst) override;
   Expression Differentiate(const Variable& x) const override;
   std::ostream& Display(std::ostream& os) const override;
-  /** Returns the constant. */
-  double get_constant() const { return constant_; }
-  /** Returns map from an expression to its coefficient. */
-  const std::map<Expression, double>& get_expr_to_coeff_map() const {
-    return expr_to_coeff_map_;
-  }
-
-  // TODO(soonho): Make the following private and allow
-  // only selected functions/method to use them.
-  /** Returns map from an expression to its coefficient. */
-  std::map<Expression, double>& get_mutable_expr_to_coeff_map() {
-    return expr_to_coeff_map_;
-  }
 
  private:
-  static Variables ExtractVariables(
-      const std::map<Expression, double>& expr_to_coeff_map);
-  std::ostream& DisplayTerm(std::ostream& os, bool print_plus, double coeff,
-                            const Expression& term) const;
-
-  double constant_{};
-  std::map<Expression, double> expr_to_coeff_map_;
+  double DoEvaluate(double v1, double v2) const override;
 };
 
-/** Factory class to help build ExpressionAdd expressions.
- *
- * @note Once `GetExpression()` is called and an expression is
- * generated, this class should not be used again. If another
- * `GetExpression()` is called, it will throws an exception.
- */
-class ExpressionAddFactory {
+/** Symbolic expression representing binary multiplication. */
+class ExpressionMul : public BinaryExpressionCell {
  public:
-  ExpressionAddFactory(const ExpressionAddFactory&) = default;
-  ExpressionAddFactory& operator=(const ExpressionAddFactory&) = default;
-  ExpressionAddFactory(ExpressionAddFactory&&) = default;
-  ExpressionAddFactory& operator=(ExpressionAddFactory&&) = default;
-
-  /** Default constructor. */
-  ExpressionAddFactory() = default;
-
-  /** Default destructor. */
-  ~ExpressionAddFactory() = default;
-
-  /** Constructs ExpressionAddFactory with @p constant and @p
-   * expr_to_coeff_map. */
-  ExpressionAddFactory(double constant,
-                       std::map<Expression, double> expr_to_coeff_map);
-
-  /** Constructs ExpressionAddFactory from @p ptr. */
-  explicit ExpressionAddFactory(const ExpressionAdd* ptr);
-
-  /** Adds @p e to this factory. */
-  ExpressionAddFactory& AddExpression(const Expression& e);
-  /** Adds ExpressionAdd pointed by @p ptr to this factory. */
-  ExpressionAddFactory& Add(const ExpressionAdd* ptr);
-  /** Assigns a factory from a pointer to ExpressionAdd.  */
-  ExpressionAddFactory& operator=(const ExpressionAdd* ptr);
-
-  /** Negates the expressions in factory.
-   * If it represents c0 + c1 * t1 + ... + * cn * tn,
-   * this method flips it into -c0 - c1 * t1 - ... - cn * tn.
-   * @returns *this.
-   */
-  ExpressionAddFactory& Negate();
-  /** Returns a symbolic expression. */
-  Expression GetExpression();
-
- private:
-  /* Adds constant to this factory.
-   * Adding constant constant into an add factory representing
-   *
-   *     c0 + c1 * t1 + ... + cn * tn
-   *
-   * results in (c0 + constant) + c1 * t1 + ... + cn * tn.  */
-  ExpressionAddFactory& AddConstant(double constant);
-  /* Adds coeff * term to this factory.
-   *
-   * Adding (coeff * term) into an add factory representing
-   *
-   *     c0 + c1 * t1 + ... + cn * tn
-   *
-   * results in c0 + c1 * t1 + ... + (coeff * term) + ... + cn * tn. Note that
-   * it also performs simplifications to merge the coefficients of common terms.
-   */
-  ExpressionAddFactory& AddTerm(double coeff, const Expression& term);
-  /* Adds expr_to_coeff_map to this factory. It calls AddConstant and AddTerm
-   * methods. */
-  ExpressionAddFactory& AddMap(
-      const std::map<Expression, double>& expr_to_coeff_map);
-
-  bool get_expression_is_called_{false};
-  double constant_{0.0};
-  std::map<Expression, double> expr_to_coeff_map_;
-};
-
-/** Symbolic expression representing a multiplication of powers.
- *
- * @f[
- *     c_0 \cdot \prod b_i^{e_i}
- * @f]
- *
- * where @f$ c_0 @f$ is a constant and @f$ b_i @f$ and @f$ e_i @f$ are symbolic
- * expressions.
- *
- * Internally this class maintains a member variable @c constant_ representing
- * @f$ c_0 @f$ and another member variable @c base_to_exponent_map_ representing
- * a mapping from a base, @f$ b_i @f$ to its exponentiation @f$ e_i @f$.
- */
-class ExpressionMul : public ExpressionCell {
- public:
-  /** Constructs ExpressionMul from @p constant and @p base_to_exponent_map. */
-  ExpressionMul(double constant,
-                std::map<Expression, Expression> base_to_exponent_map);
-  bool EqualTo(const ExpressionCell& e) const override;
-  bool Less(const ExpressionCell& e) const override;
-  double Evaluate(const Environment& env) const override;
+  ExpressionMul(const Expression& e1, const Expression& e2);
   Expression Expand() override;
   Expression Substitute(const ExpressionSubstitution& expr_subst,
                         const FormulaSubstitution& formula_subst) override;
   Expression Differentiate(const Variable& x) const override;
   std::ostream& Display(std::ostream& os) const override;
-  /** Returns constant term. */
-  double get_constant() const { return constant_; }
-  /** Returns map from a term to its exponent. */
-  const std::map<Expression, Expression>& get_base_to_exponent_map() const {
-    return base_to_exponent_map_;
-  }
-
-  // TODO(soonho): Make the following private and allow
-  // only selected functions/method to use them.
-  /** Returns map from a term to its exponent. */
-  std::map<Expression, Expression>& get_mutable_base_to_exponent_map() {
-    return base_to_exponent_map_;
-  }
 
  private:
-  static Variables ExtractVariables(
-      const std::map<Expression, Expression>& base_to_exponent_map);
-  std::ostream& DisplayTerm(std::ostream& os, bool print_mul,
-                            const Expression& base,
-                            const Expression& exponent) const;
-
-  double constant_{};
-  std::map<Expression, Expression> base_to_exponent_map_;
-};
-
-/** Factory class to help build ExpressionMul expressions.
- *
- * @note Once `GetExpression()` is called and an expression is
- * generated, this class should not be used again. If another
- * `GetExpression()` is called, it will throws an exception.
- */
-class ExpressionMulFactory {
- public:
-  ExpressionMulFactory(const ExpressionMulFactory&) = default;
-  ExpressionMulFactory& operator=(const ExpressionMulFactory&) = default;
-  ExpressionMulFactory(ExpressionMulFactory&&) = default;
-  ExpressionMulFactory& operator=(ExpressionMulFactory&&) = default;
-
-  /** Default constructor. It constructs. */
-  ExpressionMulFactory() = default;
-
-  /** Default destructor. */
-  ~ExpressionMulFactory() = default;
-
-  /** Constructs ExpressionMulFactory with @p constant and @p
-   * base_to_exponent_map. */
-  ExpressionMulFactory(double constant,
-                       std::map<Expression, Expression> base_to_exponent_map);
-
-  /** Constructs ExpressionMulFactory from @p ptr. */
-  explicit ExpressionMulFactory(const ExpressionMul* ptr);
-
-  /** Adds @p e to this factory. */
-  ExpressionMulFactory& AddExpression(const Expression& e);
-  /** Adds ExpressionMul pointed by @p ptr to this factory. */
-  ExpressionMulFactory& Add(const ExpressionMul* ptr);
-  /** Assigns a factory from a pointer to ExpressionMul.  */
-  ExpressionMulFactory& operator=(const ExpressionMul* ptr);
-  /** Negates the expressions in factory.
-   * If it represents c0 * p1 * ... * pn,
-   * this method flips it into -c0 * p1 * ... * pn.
-   * @returns *this.
-   */
-  ExpressionMulFactory& Negate();
-  /** Returns a symbolic expression. */
-  Expression GetExpression();
-
- private:
-  /* Adds constant to this factory.
-     Adding constant into an mul factory representing
-
-         c * b1 ^ e1 * ... * bn ^ en
-
-     results in (constant * c) * b1 ^ e1 * ... * bn ^ en. */
-  ExpressionMulFactory& AddConstant(double constant);
-  /* Adds pow(base, exponent) to this factory.
-     Adding pow(base, exponent) into an mul factory representing
-
-         c * b1 ^ e1 * ... * bn ^ en
-
-     results in c * b1 ^ e1 * ... * base^exponent * ... * bn ^ en. Note that
-     it also performs simplifications to merge the exponents of common bases.
-  */
-  ExpressionMulFactory& AddTerm(const Expression& base,
-                                const Expression& exponent);
-  /* Adds base_to_exponent_map to this factory. It calls AddConstant and AddTerm
-   * methods. */
-  ExpressionMulFactory& AddMap(
-      const std::map<Expression, Expression>& base_to_exponent_map);
-
-  bool get_expression_is_called_{false};
-  double constant_{1.0};
-  std::map<Expression, Expression> base_to_exponent_map_;
+  double DoEvaluate(double v1, double v2) const override;
 };
 
 /** Symbolic expression representing division. */
