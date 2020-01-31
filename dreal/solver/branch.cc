@@ -7,7 +7,6 @@ namespace dreal {
 
 using std::make_pair;
 using std::pair;
-using std::vector;
 
 pair<double, int> FindMaxDiam(const Box& box, const ibex::BitSet& bitset) {
   DREAL_ASSERT(!bitset.empty());
@@ -25,9 +24,8 @@ pair<double, int> FindMaxDiam(const Box& box, const ibex::BitSet& bitset) {
   return make_pair(max_diam, max_diam_idx);
 }
 
-bool Branch(const Box& box, const ibex::BitSet& bitset,
-            const bool stack_left_box_first,
-            vector<pair<Box, int>>* const stack) {
+optional<std::tuple<Box, Box, int>> Branch(const Box& box,
+                                           const ibex::BitSet& bitset) {
   DREAL_ASSERT(!bitset.empty());
 
   // TODO(soonho): For now, we fixated the branching heuristics.
@@ -35,31 +33,17 @@ bool Branch(const Box& box, const ibex::BitSet& bitset,
   const pair<double, int> max_diam_and_idx{FindMaxDiam(box, bitset)};
   const int branching_point{max_diam_and_idx.second};
   if (branching_point >= 0) {
-    const pair<Box, Box> bisected_boxes{box.bisect(branching_point)};
-    if (stack_left_box_first) {
-      stack->emplace_back(bisected_boxes.first, branching_point);
-      stack->emplace_back(bisected_boxes.second, branching_point);
-      DREAL_LOG_DEBUG(
-          "Branch {}\n"
-          "on {}\n"
-          "Box1=\n{}\n"
-          "Box2=\n{}",
-          box, box.variable(branching_point), bisected_boxes.first,
-          bisected_boxes.second);
-    } else {
-      stack->emplace_back(bisected_boxes.second, branching_point);
-      stack->emplace_back(bisected_boxes.first, branching_point);
-      DREAL_LOG_DEBUG(
-          "Branch {}\n"
-          "on {}\n"
-          "Box1=\n{}\n"
-          "Box2=\n{}",
-          box, box.variable(branching_point), bisected_boxes.second,
-          bisected_boxes.first);
-    }
-    return true;
+    pair<Box, Box> bisected_boxes{box.bisect(branching_point)};
+    DREAL_LOG_DEBUG(
+        "Branch {}\n"
+        "on {}\n"
+        "Box1=\n{}\n"
+        "Box2=\n{}",
+        box, box.variable(branching_point), bisected_boxes.first,
+        bisected_boxes.second);
+    return std::make_tuple(bisected_boxes.first, bisected_boxes.second,
+                           branching_point);
   }
-  // Fail to find a branching point.
-  return false;
+  return nullopt;
 }
 }  // namespace dreal

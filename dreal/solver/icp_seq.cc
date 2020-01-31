@@ -97,8 +97,19 @@ bool IcpSeq::CheckSat(const Contractor& contractor,
 
     // 3.2.3. This box is bigger than delta. Need branching.
     branch_timer_guard.resume();
-    if (!Branch(current_box, *evaluation_result, stack_left_box_first_,
-                &stack)) {
+    const auto branch_result = Branch(current_box, *evaluation_result);
+    if (branch_result) {
+      const Box& box_left{std::get<0>(*branch_result)};
+      const Box& box_right{std::get<1>(*branch_result)};
+      const int branching_point{std::get<2>(*branch_result)};
+      if (stack_left_box_first_) {
+        stack.emplace_back(box_left, branching_point);
+        stack.emplace_back(box_right, branching_point);
+      } else {
+        stack.emplace_back(box_right, branching_point);
+        stack.emplace_back(box_left, branching_point);
+      }
+    } else {
       DREAL_LOG_DEBUG(
           "IcpSeq::CheckSat() Found that the current box is not satisfying "
           "delta-condition but it's not bisectable.:\n{}",

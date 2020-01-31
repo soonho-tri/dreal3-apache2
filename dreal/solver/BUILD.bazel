@@ -39,6 +39,7 @@ dreal_cc_library(
         "//dreal/util:assert",
         "//dreal/util:box",
         "//dreal/util:logging",
+        "//dreal/util:optional",
     ],
 )
 
